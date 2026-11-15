@@ -5,6 +5,7 @@
   const pending = new Map();
   let ready = false;
   let frameOrigin = "";
+  let bridgeWindow = null;
   let sequence = 0;
   let readyPromise;
 
@@ -13,6 +14,20 @@
       const host = new URL(origin).hostname;
       return host === "script.google.com" || host.endsWith(".googleusercontent.com");
     } catch (_) { return false; }
+  }
+
+  function isBridgeFrame(source) {
+    if (!frame || !source) return false;
+    let current = source;
+    for (let depth = 0; depth < 12; depth += 1) {
+      if (current === frame.contentWindow) return true;
+      try {
+        const parent = current.parent;
+        if (!parent || parent === current) return false;
+        current = parent;
+      } catch (_) { return false; }
+    }
+    return false;
   }
 
   function connect() {
@@ -34,12 +49,13 @@
   }
 
   window.addEventListener("message", event => {
-    if (event.source !== frame?.contentWindow || !isGoogleOrigin(event.origin)) return;
+    if (!isBridgeFrame(event.source) || !isGoogleOrigin(event.origin)) return;
     const message = event.data;
     if (!message || message.channel !== "bar-amigos-v5") return;
     if (message.type === "ready") {
       ready = true;
       frameOrigin = event.origin;
+      bridgeWindow = event.source;
       window.dispatchEvent(new Event("bar-v5-ready"));
       return;
     }
@@ -57,7 +73,7 @@
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { pending.delete(id); reject(new Error("O servidor não respondeu a tempo.")); }, 25000);
       pending.set(id, { resolve, reject, timer });
-      frame.contentWindow.postMessage({ channel: "bar-amigos-v5", id, action, args }, frameOrigin);
+      bridgeWindow.postMessage({ channel: "bar-amigos-v5", id, action, args }, frameOrigin);
     });
   }
 
