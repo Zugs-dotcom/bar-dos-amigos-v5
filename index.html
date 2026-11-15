@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171512">
+  <meta name="description" content="Cardápio digital opcional do Bar dos Amigos. Consulte e faça seu pedido diretamente com os atendentes.">
+  <title>Bar dos Amigos | Cardápio</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="Bar dos Amigos, início">
+      <span class="brand-mark" aria-hidden="true">BA</span>
+      <span class="brand-name">BAR DOS <b>AMIGOS</b><small>BOTECO • BUTANTÃ</small></span>
+    </a>
+    <nav class="main-nav" aria-label="Navegação principal">
+      <a href="#cardapio">Cardápio</a>
+      <a href="#sobre">O bar</a>
+    </nav>
+    <a class="button button-yellow header-cta" href="#cardapio">Ver cardápio <span aria-hidden="true">↘</span></a>
+  </header>
+
+  <main id="conteudo">
+    <section class="hero" id="inicio">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-line"></span> DESDE SEMPRE, UM BOM ENCONTRO</p>
+        <h1>BAR DOS<br><em>AMIGOS.</em></h1>
+        <p class="hero-lead">Comida boa, cerveja gelada e aquele clima de boteco que reúne todo mundo.</p>
+        <div class="hero-actions">
+          <a class="button button-yellow" href="#cardapio">Explorar o cardápio <span aria-hidden="true">→</span></a>
+          <span class="hero-note">Peça diretamente no balcão.</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="Ilustração de copo de cerveja e petiscos" role="img">
+        <div class="sun-disc"></div>
+        <div class="hero-beer">🍺</div>
+        <div class="hero-snack">🥟</div>
+        <span class="stamp stamp-top">BOTECO<br>DE AMIGOS</span>
+        <span class="stamp stamp-bottom">BUTANTÃ • SP</span>
+      </div>
+      <div class="hero-bottomline"><span>BOA CONVERSA</span><span>•</span><span>BOA COMIDA</span><span>•</span><span>BOA COMPANHIA</span></div>
+    </section>
+
+    <section class="menu-section section-wrap" id="cardapio">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-line"></span> ESCOLHA SEM PRESSA</p>
+          <h2>O nosso <em>cardápio.</em></h2>
+          <p class="section-subtitle">Confira as opções e consulte a disponibilidade com a equipe.</p>
+        </div>
+        <div class="menu-count"><strong id="product-count">0</strong><span>opções<br>no cardápio</span></div>
+      </div>
+
+      <div id="connection-status" class="status-banner" role="status" hidden></div>
+
+      <div class="menu-tools">
+        <label class="search-field">
+          <span aria-hidden="true">⌕</span>
+          <span class="sr-only">Buscar no cardápio</span>
+          <input id="search-input" type="search" placeholder="Buscar cerveja, porção, coxinha..." autocomplete="off">
+          <kbd>BUSCAR</kbd>
+        </label>
+        <div id="category-list" class="category-list" aria-label="Categorias"></div>
+      </div>
+
+      <div class="product-toolbar">
+        <div>
+          <p class="eyebrow">MENU DO BOTECO</p>
+          <h3 id="current-category">Todas as opções</h3>
+        </div>
+        <label class="subcategory-label">Filtrar
+          <select id="subcategory-select" aria-label="Filtrar por tipo">
+            <option value="">Todos os tipos</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="product-grid" class="product-grid" aria-live="polite" aria-busy="false"></div>
+      <div id="empty-state" class="empty-state" hidden>
+        <span aria-hidden="true">🔎</span>
+        <h3>Nada por aqui.</h3>
+        <p>Tente outro nome ou escolha uma categoria diferente.</p>
+        <button class="button button-outline" id="clear-filters">Limpar filtros</button>
+      </div>
+      <p class="demo-disclaimer">* Catálogo e valores demonstrativos. Não representam preços ou disponibilidade reais do estabelecimento.</p>
+    </section>
+
+    <section class="special-section">
+      <div class="special-illustration" aria-hidden="true"><span>🥟</span><i>★</i></div>
+      <div class="special-copy">
+        <p class="eyebrow"><span class="eyebrow-line"></span> A QUERIDINHA DO BOTECO</p>
+        <h2>Tem coisa que<br><em>é tradição.</em></h2>
+        <p>A coxinha é uma das especialidades da casa. Consulte os atendentes para saber as opções disponíveis no dia.</p>
+        <a href="#cardapio" class="text-link">Ver lanches e petiscos <span aria-hidden="true">→</span></a>
+      </div>
+      <span class="special-side-note">FEITA PARA COMPARTILHAR</span>
+    </section>
+
+    <section class="about-section section-wrap" id="sobre">
+      <div class="about-heading">
+        <p class="eyebrow"><span class="eyebrow-line"></span> CHEGA MAIS</p>
+        <h2>Um lugar de<br><em>bons encontros.</em></h2>
+      </div>
+      <div class="about-content">
+        <p>O Bar dos Amigos é um boteco de bairro no Butantã, em São Paulo. Um espaço para encontrar os amigos, comer bem e aproveitar bons momentos.</p>
+        <div class="about-grid">
+          <article class="about-item"><span class="about-icon">⌖</span><div><small>ENDEREÇO</small><p data-about="endereco">A preencher pelos proprietários</p></div></article>
+          <article class="about-item"><span class="about-icon">◷</span><div><small>HORÁRIO</small><p data-about="horario">A preencher pelos proprietários</p></div></article>
+          <article class="about-item"><span class="about-icon">☎</span><div><small>TELEFONE</small><p data-about="telefone">A preencher pelos proprietários</p></div></article>
+          <article class="about-item"><span class="about-icon">◎</span><div><small>INSTAGRAM</small><p data-about="instagram">A preencher pelos proprietários</p></div></article>
+        </div>
+        <div class="about-actions">
+          <a id="whatsapp-link" class="button button-yellow" href="#" hidden>Conversar no WhatsApp ↗</a>
+          <a id="maps-link" class="button button-outline" href="#" target="_blank" rel="noopener noreferrer" hidden>Como chegar ↗</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="#inicio"><span class="brand-mark">BA</span><span class="brand-name">BAR DOS <b>AMIGOS</b><small>BOTECO • BUTANTÃ</small></span></a>
+    <p>Cardápio digital opcional.<br>O pedido continua sendo feito diretamente com os atendentes.</p>
+    <div class="footer-links"><a href="admin.html">Área dos proprietários</a><span class="footer-est">BONS ENCONTROS DESDE SEMPRE.</span></div>
+  </footer>
+
+  <iframe id="backend-bridge" class="backend-bridge" title="Conexão segura com o catálogo" aria-hidden="true" tabindex="-1"></iframe>
+
+  <dialog id="product-dialog" class="product-dialog" aria-labelledby="dialog-title">
+    <button type="button" class="dialog-close" id="dialog-close" aria-label="Fechar detalhes">×</button>
+    <div id="dialog-content"></div>
+  </dialog>
+
+  <script src="js/dados.js"></script>
+  <script src="js/bridge.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

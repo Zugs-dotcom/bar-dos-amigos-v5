@@ -1,0 +1,10 @@
+id,nome,ordem,ativa
+cervejas,Cervejas,1,TRUE
+refrigerantes,Refrigerantes,2,TRUE
+aguas,Águas e sucos,3,TRUE
+energeticos,Energéticos,4,TRUE
+destilados,Destilados e doses,5,TRUE
+drinks,Drinks,6,TRUE
+salgados,Salgados,7,TRUE
+porcoes,Porções,8,TRUE
+snacks,Salgadinhos e Snacks,9,TRUE

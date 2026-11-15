@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171512">
+  <meta name="description" content="Painel administrativo do cardápio do Bar dos Amigos.">
+  <title>Administração | Bar dos Amigos</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+  <a class="skip-link" href="#admin-main">Pular para o painel</a>
+  <header class="admin-header">
+    <a class="brand" href="index.html" aria-label="Voltar ao cardápio">
+      <span class="brand-mark" aria-hidden="true">BA</span>
+      <span class="brand-name">BAR DOS <b>AMIGOS</b><small>PAINEL ADMINISTRATIVO</small></span>
+    </a>
+    <div class="header-actions">
+      <a class="button button-outline" href="index.html">Ver cardápio</a>
+      <button class="button button-outline" id="change-password-open" type="button" hidden>Trocar senha</button>
+      <button class="button button-yellow" id="logout-button" type="button" hidden>Sair</button>
+    </div>
+  </header>
+
+  <main class="admin-main" id="admin-main">
+    <div id="auth-status" class="admin-status auth-status" role="status" aria-live="polite" hidden></div>
+    <section class="auth-panel" id="login-view" aria-labelledby="login-title">
+      <p class="eyebrow"><span class="eyebrow-line"></span> ACESSO DOS PROPRIETÁRIOS</p>
+      <h1 id="login-title">Entrar no <em>painel.</em></h1>
+      <p class="auth-intro">Gerencie produtos, preços, categorias e disponibilidade do cardápio.</p>
+      <form id="login-form" class="admin-form">
+        <label for="login-password">Senha administrativa</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button button-yellow form-submit" type="submit">Entrar <span aria-hidden="true">→</span></button>
+      </form>
+      <p id="setup-warning" class="setup-warning" hidden>O acesso ainda precisa ser conectado ao Google Sheets. Siga as instruções do arquivo README incluído no pacote V5.</p>
+      <p class="auth-security">A senha é validada pelo Apps Script. Ela não fica no código público do cardápio.</p>
+    </section>
+
+    <section class="auth-panel" id="password-view" aria-labelledby="password-title" hidden>
+      <p class="eyebrow"><span class="eyebrow-line"></span> PRIMEIRO ACESSO</p>
+      <h1 id="password-title">Troque a senha <em>provisória.</em></h1>
+      <p class="auth-intro">Escolha uma senha nova com pelo menos 12 caracteres para continuar.</p>
+      <form id="first-password-form" class="admin-form">
+        <label for="current-password">Senha provisória atual</label>
+        <input id="current-password" name="currentPassword" type="password" autocomplete="current-password" required>
+        <label for="new-password">Nova senha</label>
+        <input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="12" required>
+        <label for="confirm-password">Confirme a nova senha</label>
+        <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" required>
+        <button class="button button-yellow form-submit" type="submit">Salvar senha</button>
+      </form>
+    </section>
+
+    <section class="dashboard" id="dashboard-view" hidden aria-labelledby="dashboard-title">
+      <div class="dashboard-heading">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-line"></span> CARDÁPIO DO BAR</p>
+          <h1 id="dashboard-title">Administração <em>simples.</em></h1>
+        </div>
+        <button class="button button-outline" id="categories-open" type="button">Gerenciar categorias</button>
+      </div>
+      <div class="stats-grid" aria-label="Resumo do catálogo">
+        <article class="stat-card"><span>PRODUTOS ATIVOS</span><strong id="active-count">0</strong></article>
+        <article class="stat-card"><span>INDISPONÍVEIS</span><strong id="unavailable-count">0</strong></article>
+        <article class="stat-card"><span>CATEGORIAS ATIVAS</span><strong id="category-count">0</strong></article>
+      </div>
+      <div id="admin-status" class="admin-status" role="status" aria-live="polite" hidden></div>
+      <div class="catalog-toolbar">
+        <label class="admin-search"><span class="sr-only">Buscar produtos</span><input id="product-search" type="search" placeholder="Buscar produto ou apresentação…"></label>
+        <label class="filter-label">Categoria
+          <select id="category-filter"><option value="">Todas</option></select>
+        </label>
+        <label class="archived-filter"><input id="show-archived" type="checkbox"> Mostrar arquivados</label>
+        <button class="button button-yellow" id="product-add" type="button">+ Novo produto</button>
+      </div>
+      <div id="product-list" class="admin-product-list" aria-live="polite"></div>
+      <nav class="pagination" id="pagination" aria-label="Páginas dos produtos" hidden>
+        <button class="button button-outline" id="previous-page" type="button">Anterior</button>
+        <span id="page-label"></span>
+        <button class="button button-outline" id="next-page" type="button">Próxima</button>
+      </nav>
+    </section>
+  </main>
+
+  <dialog class="admin-dialog" id="product-dialog" aria-labelledby="product-dialog-title">
+    <form id="product-form" class="dialog-form">
+      <div class="dialog-heading"><div><p class="eyebrow">CATÁLOGO</p><h2 id="product-dialog-title">Novo produto</h2></div><button class="dialog-close" type="button" data-close="product-dialog" aria-label="Fechar">×</button></div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label class="span-2">Nome do produto<input name="nome" maxlength="100" required></label>
+        <label>Categoria<select name="categoria" required></select></label>
+        <label>Subcategoria<input name="subcategoria" maxlength="80"></label>
+        <label>Apresentação / tamanho<input name="tamanho" maxlength="80" placeholder="Ex.: Lata 350 ml"></label>
+        <label>Família de opções<input name="grupo" maxlength="100" placeholder="Agrupa sabores ou versões"></label>
+        <label>Preço (R$)<input name="preco" type="number" min="0" max="99999" step="0.01" inputmode="decimal"></label>
+        <label>Ilustração<select name="ilustracao"><option value="assets/ilustracoes/drink.svg">Bebida / drink</option><option value="assets/ilustracoes/cerveja-garrafa.svg">Cerveja em garrafa</option><option value="assets/ilustracoes/cerveja-lata.svg">Cerveja em lata</option><option value="assets/ilustracoes/coxinha.svg">Coxinha</option><option value="assets/ilustracoes/empada.svg">Empada</option><option value="assets/ilustracoes/pastel.svg">Pastel</option><option value="assets/ilustracoes/risole.svg">Risole</option><option value="assets/ilustracoes/enroladinho.svg">Enroladinho</option><option value="assets/ilustracoes/porcao.svg">Porção / snack</option></select></label>
+        <label class="span-2">Descrição<textarea name="descricao" rows="2" maxlength="300"></textarea></label>
+        <label class="span-2">Ingredientes ou observação<textarea name="ingredientes" rows="2" maxlength="300"></textarea></label>
+      </div>
+      <div class="check-grid">
+        <label><input type="checkbox" name="precoIndefinido"> Consultar preço no balcão</label>
+        <label><input type="checkbox" name="disponivel" checked> Disponível agora</label>
+        <label><input type="checkbox" name="ativo" checked> Exibir no cardápio</label>
+        <label><input type="checkbox" name="retornavel"> Embalagem retornável</label>
+      </div>
+      <div class="dialog-actions"><button class="button button-outline" type="button" data-close="product-dialog">Cancelar</button><button class="button button-yellow" type="submit">Salvar produto</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="admin-dialog categories-dialog" id="categories-dialog" aria-labelledby="categories-title">
+    <div class="dialog-form">
+      <div class="dialog-heading"><div><p class="eyebrow">ORGANIZAÇÃO</p><h2 id="categories-title">Categorias</h2></div><button class="dialog-close" type="button" data-close="categories-dialog" aria-label="Fechar">×</button></div>
+      <p class="dialog-help">Desative categorias sem removê-las. Para excluir uma categoria, primeiro mova os produtos ligados a ela para outra categoria.</p>
+      <div id="category-editor-list" class="category-editor-list"></div>
+      <form id="category-add-form" class="category-add-form">
+        <label>Nova categoria<input name="nome" maxlength="60" required placeholder="Ex.: Porções"></label>
+        <label>Ordem<input name="ordem" type="number" min="1" max="999" value="10" required></label>
+        <button class="button button-yellow" type="submit">Adicionar</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog class="admin-dialog" id="change-password-dialog" aria-labelledby="change-password-title">
+    <form id="change-password-form" class="dialog-form">
+      <div class="dialog-heading"><div><p class="eyebrow">SEGURANÇA</p><h2 id="change-password-title">Trocar senha</h2></div><button class="dialog-close" type="button" data-close="change-password-dialog" aria-label="Fechar">×</button></div>
+      <label>Senha atual<input name="currentPassword" type="password" autocomplete="current-password" required></label>
+      <label>Nova senha (12 caracteres ou mais)<input name="newPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+      <label>Confirme a nova senha<input name="confirmPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+      <div class="dialog-actions"><button class="button button-outline" type="button" data-close="change-password-dialog">Cancelar</button><button class="button button-yellow" type="submit">Atualizar senha</button></div>
+    </form>
+  </dialog>
+
+  <iframe id="backend-bridge" class="backend-bridge" title="Conexão segura com o catálogo" aria-hidden="true" tabindex="-1"></iframe>
+  <script src="js/dados.js"></script>
+  <script src="js/bridge.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

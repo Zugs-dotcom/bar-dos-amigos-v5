@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conexão do catálogo</title>
+</head>
+<body>
+<script>
+  "use strict";
+  const CHANNEL = "bar-amigos-v5";
+  const ALLOWED_PARENTS = <?!= allowedOrigins ?>;
+  const METHODS = {
+    menu: "apiPublicMenu",
+    login: "apiLogin",
+    changePassword: "apiChangePassword",
+    adminData: "apiAdminData",
+    saveProduct: "apiSaveProduct",
+    saveCategory: "apiSaveCategory",
+    deleteCategory: "apiDeleteCategory",
+    logout: "apiLogout"
+  };
+
+  function send(target, message) {
+    if (ALLOWED_PARENTS.includes(target)) window.parent.postMessage({ channel: CHANNEL, ...message }, target);
+  }
+
+  ALLOWED_PARENTS.forEach(origin => send(origin, { type: "ready" }));
+
+  window.addEventListener("message", event => {
+    if (event.source !== window.parent || !ALLOWED_PARENTS.includes(event.origin)) return;
+    const message = event.data;
+    if (!message || message.channel !== CHANNEL || !METHODS[message.action] || !Array.isArray(message.args)) return;
+    const method = METHODS[message.action];
+    const runner = google.script.run
+      .withSuccessHandler(result => send(event.origin, { id: message.id, ok: true, result }))
+      .withFailureHandler(error => send(event.origin, { id: message.id, ok: false, error: String(error && error.message || "Falha ao acessar o catálogo.") }));
+    runner[method](...message.args);
+  });
+</script>
+</body>
+</html>
