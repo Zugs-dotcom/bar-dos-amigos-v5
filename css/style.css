@@ -78,6 +78,13 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
 .category-list { display: flex; flex-wrap: wrap; justify-content: end; gap: 7px; }
 .category-chip { min-height: 40px; padding: 8px 13px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .category-chip:hover, .category-chip.active { background: var(--yellow); color: var(--ink); border-color: var(--yellow); }
+.category-overview { display: none; }
+.category-overview[hidden], .category-list[hidden], .product-toolbar[hidden], .product-grid[hidden] { display: none !important; }
+.category-card { min-width: 0; min-height: 94px; display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-rows: 1fr auto; align-items: end; gap: 7px 12px; padding: 15px; border: 1px solid var(--line); background: var(--ink-2); color: var(--paper); text-align: left; cursor: pointer; }
+.category-card:hover, .category-card:focus-visible { border-color: var(--yellow); background: #2a261f; }
+.category-card strong { align-self: start; grid-column: 1/-1; font: 700 24px/1 var(--display); }
+.category-card > span:not(.category-card-arrow) { color: var(--muted); font-size: 11px; }
+.category-card-arrow { color: var(--yellow); font-size: 19px; line-height: 1; }
 .product-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 20px; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
 .product-toolbar .eyebrow { margin-bottom: 3px; font-size: 9px; }
 .product-toolbar h3 { font: 700 30px var(--display); }
@@ -112,7 +119,7 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
 .special-section { min-height: 380px; padding: 60px clamp(24px,12vw,170px); display: grid; grid-template-columns: .8fr 1.2fr; align-items: center; gap: 55px; position: relative; overflow: hidden; background: var(--yellow); color: var(--ink); }
 .special-section::before { content: ""; position: absolute; inset: 0; opacity: .12; background: repeating-linear-gradient(-45deg,transparent 0 9px,#211e19 10px 11px); }
 .special-illustration { position: relative; z-index: 1; display: grid; place-items: center; min-height: 250px; background: rgba(23,21,18,.09); border: 1px solid rgba(23,21,18,.2); }
-.special-illustration span { font-size: clamp(100px,15vw,170px); filter: drop-shadow(10px 13px 0 rgba(0,0,0,.12)); }
+.special-illustration img { position: relative; z-index: 1; width: min(82%,250px); height: auto; filter: drop-shadow(10px 13px 0 rgba(0,0,0,.14)); transform: rotate(-9deg); }
 .special-illustration i { position: absolute; right: 18%; top: 14%; font-style: normal; font-size: 36px; transform: rotate(15deg); }
 .special-copy { position: relative; z-index: 1; }
 .special-copy .eyebrow { color: var(--ink); }
@@ -182,6 +189,9 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
   .menu-count { font-size: 8px; }
   .search-field kbd { display: none; }
   .category-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .category-overview:not([hidden]) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin: -12px 0 23px; }
+  .category-card { min-height: 86px; padding: 12px; }
+  .category-card strong { font-size: 21px; }
   .category-chip { padding: 8px 5px; font-size: 9px; }
   .product-toolbar { align-items: start; flex-direction: column; }
   .product-toolbar h3 { font-size: 27px; }
@@ -198,7 +208,7 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
   .detail-button { width: 100%; }
   .special-section { grid-template-columns: 1fr; gap: 24px; padding: 45px 24px; }
   .special-illustration { min-height: 180px; }
-  .special-illustration span { font-size: 115px; }
+  .special-illustration img { width: min(70vw,220px); }
   .special-copy h2 { font-size: 58px; }
   .about-section { grid-template-columns: 1fr; gap: 20px; }
   .about-heading h2 { font-size: 58px; }
@@ -231,3 +241,4 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
 .variant-price { color: #f3c43c; font-weight: 700; }
 .variant-note, .variant-option small { color: #d3c8b6; line-height: 1.45; }
 .variant-option small { font-size: .82rem; }
+
