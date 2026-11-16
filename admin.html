@@ -67,6 +67,34 @@
         <article class="stat-card"><span>CATEGORIAS ATIVAS</span><strong id="category-count">0</strong></article>
       </div>
       <div id="admin-status" class="admin-status" role="status" aria-live="polite" hidden></div>
+      <section class="quick-bill" aria-labelledby="quick-bill-title">
+        <div class="quick-bill-heading">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> ATENDIMENTO</p>
+            <h2 id="quick-bill-title">Conta <em>rápida.</em></h2>
+            <p>Selecione os produtos, ajuste as quantidades e confira o total.</p>
+          </div>
+          <button class="button button-outline" id="quick-bill-clear" type="button" hidden>Limpar conta</button>
+        </div>
+        <form id="quick-bill-form" class="quick-bill-command">
+          <div class="quick-bill-entry">
+            <label for="quick-bill-product">Produto e apresentação
+              <select id="quick-bill-product" required><option value="">Escolha um produto</option></select>
+            </label>
+            <label for="quick-bill-quantity">Quantidade
+              <input id="quick-bill-quantity" type="number" min="1" max="999" step="1" value="1" inputmode="numeric" required>
+            </label>
+            <button class="button button-yellow" type="submit">Adicionar à conta</button>
+          </div>
+          <small>Itens indisponíveis ou sem preço cadastrado não podem ser adicionados.</small>
+        </form>
+        <div id="quick-bill-status" class="quick-bill-status" role="status" aria-live="polite" hidden></div>
+        <div id="quick-bill-empty" class="quick-bill-empty">A conta está vazia. Adicione o primeiro item acima.</div>
+        <div id="quick-bill-items" class="quick-bill-items" aria-live="polite"></div>
+        <div class="quick-bill-total"><span>Total parcial</span><strong id="quick-bill-total">R$ 0,00</strong></div>
+        <p id="quick-bill-price-note" class="quick-bill-price-note" hidden>Há valores de exemplo nesta conta. Confirme esses preços antes de cobrar.</p>
+        <p class="quick-bill-footnote">Conta de conferência: não registra pedido nem altera estoque.</p>
+      </section>
       <div class="catalog-toolbar">
         <label class="admin-search"><span class="sr-only">Buscar produtos</span><input id="product-search" type="search" placeholder="Buscar produto ou apresentação…"></label>
         <label class="filter-label">Categoria
@@ -154,3 +182,4 @@
   <script src="js/admin.js"></script>
 </body>
 </html>
+
