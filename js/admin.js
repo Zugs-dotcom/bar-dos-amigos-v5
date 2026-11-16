@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const $ = (selector, root=document) => root.querySelector(selector);
-  const state = { token: "", categories: [], products: [], page: 0, pageSize: 20, search: "", category: "", showArchived: false, editingProducts: [], commonInitial: {}, initialFormSnapshot: "", bodyScrollY: 0, saving: false, quickBill: [] };
+  const state = { token: "", categories: [], products: [], page: 0, pageSize: 12, search: "", category: "", showArchived: false, editingProducts: [], commonInitial: {}, initialFormSnapshot: "", bodyScrollY: 0, saving: false, quickBill: [], adminSection: "summary" };
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const tokenKey = "bar-amigos-admin-session-v5";
   const PRESENTATION_TYPES = {
@@ -157,7 +157,18 @@
     $("#dashboard-view").hidden = view !== "dashboard";
     $("#logout-button").hidden = view === "login";
     $("#change-password-open").hidden = view !== "dashboard";
+    if (view === "dashboard") setAdminSection(state.adminSection);
     if (view !== "dashboard") setStatus("");
+  }
+
+  function setAdminSection(section) {
+    if (!["summary", "quick-bill", "products"].includes(section)) section = "summary";
+    state.adminSection = section;
+    document.querySelectorAll("[data-admin-section]").forEach(button => {
+      if (button.dataset.adminSection === section) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+    document.querySelectorAll(".admin-section").forEach(panel => { panel.hidden = panel.id !== `admin-section-${section}`; });
   }
 
   function setToken(token) {
@@ -250,8 +261,9 @@
   function handleQuickBillSubmit(event) {
     event.preventDefault();
     const product = state.products.find(item => String(item.id) === $("#quick-bill-product").value);
-    const quantity = Number($("#quick-bill-quantity").value);
-    if (!product || !product.ativo || !product.disponivel || product.precoIndefinido || product.preco == null || product.preco === "" || !Number.isFinite(Number(product.preco))) {
+    const selectedQuantity = $("#quick-bill-quantity").value;
+    const quantity = selectedQuantity === "custom" ? Number($("#quick-bill-custom-quantity").value) : Number(selectedQuantity);
+    if (!product || product.ativo === false || !product.disponivel || product.precoIndefinido || product.preco == null || product.preco === "" || !Number.isFinite(Number(product.preco))) {
       setQuickBillStatus("Escolha um produto disponível e com preço cadastrado.", true);
       return;
     }
@@ -261,10 +273,17 @@
     }
     const id = String(product.id);
     const existing = state.quickBill.find(item => item.productId === id);
-    if (existing) existing.quantity = Math.min(999, existing.quantity + quantity);
+    if (existing && existing.quantity + quantity > 999) {
+      setQuickBillStatus("A quantidade máxima por item é 999.", true);
+      return;
+    }
+    if (existing) existing.quantity += quantity;
     else state.quickBill.push({ productId: id, product: { ...product }, quantity, priceCents: Math.round(Number(product.preco) * 100) });
     setQuickBillStatus(`${quantity} ${quantity === 1 ? "unidade adicionada" : "unidades adicionadas"} à conta.`);
     $("#quick-bill-quantity").value = "1";
+    $("#quick-bill-custom-label").hidden = true;
+    $("#quick-bill-custom-quantity").required = false;
+    $("#quick-bill-custom-quantity").value = "11";
     renderQuickBill();
   }
 
@@ -299,76 +318,131 @@
   function renderProducts() {
     const list = $("#product-list");
     list.replaceChildren();
-    const query = state.search.toLocaleLowerCase("pt-BR");
+    const query = normalizeKey(state.search);
     const filtered = state.products.filter(product => {
       const visible = state.showArchived || product.ativo;
       const categoryMatches = !state.category || product.categoria === state.category;
-      const text = [product.nome, product.tamanho, product.subcategoria, product.grupo].join(" ").toLocaleLowerCase("pt-BR");
+      const text = normalizeKey([product.nome, product.tamanho, product.subcategoria, product.grupo].join(" "));
       return visible && categoryMatches && text.includes(query);
-    }).sort((a, b) => categoryName(a.categoria).localeCompare(categoryName(b.categoria), "pt-BR") || a.nome.localeCompare(b.nome, "pt-BR") || String(a.tamanho).localeCompare(String(b.tamanho), "pt-BR"));
-    const pageCount = Math.max(1, Math.ceil(filtered.length / state.pageSize));
+    });
+    const families = new Map();
+    filtered.forEach(product => {
+      const key = `${product.categoria}::${normalizeKey(product.grupo || product.nome)}`;
+      if (!families.has(key)) families.set(key, { product, items: [] });
+      families.get(key).items.push(product);
+    });
+    const grouped = [...families.values()].sort((a,b) => categoryName(a.product.categoria).localeCompare(categoryName(b.product.categoria),"pt-BR") || (a.product.grupo || a.product.nome).localeCompare(b.product.grupo || b.product.nome,"pt-BR"));
+    const pageCount = Math.max(1, Math.ceil(grouped.length / state.pageSize));
     state.page = Math.min(state.page, pageCount - 1);
-    const pageItems = filtered.slice(state.page * state.pageSize, (state.page + 1) * state.pageSize);
+    const pageItems = grouped.slice(state.page * state.pageSize, (state.page + 1) * state.pageSize);
     if (!pageItems.length) {
       const empty = document.createElement("p");
       empty.className = "empty-admin";
-      empty.textContent = filtered.length ? "Não há produtos nesta página." : "Nenhum produto encontrado. Ajuste a busca ou adicione um produto.";
+      empty.textContent = grouped.length ? "Não há produtos nesta página." : "Nenhum produto encontrado. Ajuste a busca ou adicione um produto.";
       list.append(empty);
     }
-    pageItems.forEach(product => list.append(createProductCard(product)));
+    pageItems.forEach(group => list.append(createProductCard(group.product, group.items)));
     const pagination = $("#pagination");
-    pagination.hidden = filtered.length <= state.pageSize;
-    $("#page-label").textContent = `Página ${state.page + 1} de ${pageCount} · ${filtered.length} produtos`;
+    pagination.hidden = grouped.length <= state.pageSize;
+    $("#page-label").textContent = `Página ${state.page + 1} de ${pageCount} · ${grouped.length} grupos`;
     $("#previous-page").disabled = state.page === 0;
     $("#next-page").disabled = state.page >= pageCount - 1;
     updateSummary();
   }
 
-  function createProductCard(product) {
+  function createProductCard(product, visibleItems) {
     const card = document.createElement("article");
-    card.className = "admin-product-card" + (product.ativo ? "" : " archived");
+    const family = familyProducts(product);
+    const activeFamily = family.filter(item => item.ativo);
+    const availableCount = activeFamily.filter(item => item.disponivel).length;
+    const archivedCount = family.length - activeFamily.length;
+    const items = visibleItems || family;
+    card.className = "admin-product-card" + (activeFamily.length ? "" : " archived");
     const title = document.createElement("div");
     title.className = "admin-product-title";
     const name = document.createElement("h2");
     name.textContent = product.grupo || product.nome;
     const detail = document.createElement("p");
-    const optionCount = familyProducts(product).length;
-    const details = [categoryName(product.categoria), product.grupo && product.nome !== product.grupo ? product.nome : "", product.tamanho, optionCount > 1 ? `${optionCount} apresentações` : "", product.subcategoria].filter(Boolean);
+    const details = [categoryName(product.categoria), `${items.length} ${items.length === 1 ? "apresentação" : "apresentações"}`, items.length === 1 ? items[0].tamanho : ""].filter(Boolean);
     detail.textContent = details.join(" · ");
     title.append(name, detail);
 
     const price = document.createElement("div");
     price.className = "admin-product-price";
-    price.textContent = product.precoIndefinido ? "Consultar" : money(product.preco);
+    const knownPrices = activeFamily.filter(item => !item.precoIndefinido && item.preco != null && item.preco !== "" && Number.isFinite(Number(item.preco))).map(item => Number(item.preco));
+    if (!activeFamily.length || !knownPrices.length) price.textContent = "Consultar";
+    else if (knownPrices.length < activeFamily.length) price.textContent = "Ver preços";
+    else if (new Set(knownPrices).size > 1) price.textContent = "A partir de " + money(Math.min(...knownPrices));
+    else price.textContent = money(knownPrices[0]);
     const priceNote = document.createElement("small");
-    priceNote.textContent = product.precoIndefinido ? "Sem preço cadastrado" : "Preço do cardápio";
+    priceNote.textContent = activeFamily.length ? `${knownPrices.length} de ${activeFamily.length} com preço` : "Produto arquivado";
     price.append(priceNote);
 
     const meta = document.createElement("div");
     meta.className = "admin-product-meta";
     const status = document.createElement("span");
-    status.className = "admin-pill " + (product.disponivel ? "available" : "unavailable");
-    status.textContent = product.disponivel ? "Disponível" : "Indisponível";
+    status.className = "admin-pill " + (availableCount ? "available" : "unavailable");
+    status.textContent = activeFamily.length ? (availableCount === activeFamily.length ? "Tudo disponível" : availableCount ? `${availableCount}/${activeFamily.length} disponíveis` : "Em falta") : "Arquivado";
     meta.append(status);
-    if (!product.ativo) {
+    if (archivedCount) {
       const archived = document.createElement("span");
       archived.className = "admin-pill archived-label";
-      archived.textContent = "Arquivado";
+      archived.textContent = `${archivedCount} arquivado${archivedCount === 1 ? "" : "s"}`;
       meta.append(archived);
-    }
-    if (product.retornavel) {
-      const returnable = document.createElement("span");
-      returnable.className = "admin-pill";
-      returnable.textContent = "Retornável";
-      meta.append(returnable);
     }
 
     const actions = document.createElement("div");
     actions.className = "admin-product-actions";
-    actions.append(actionButton("edit", optionCount > 1 ? "Editar opções" : "Editar produto", "button button-outline", product.id));
-    actions.append(actionButton("availability", product.disponivel ? "Marcar em falta" : "Marcar disponível", "button button-outline", product.id));
-    actions.append(actionButton("archive", product.ativo ? "Arquivar" : "Restaurar", "button button-outline", product.id));
+    const representative = activeFamily[0] || product;
+    actions.append(actionButton("edit", activeFamily.length > 1 ? "Editar opções" : "Editar produto", "button button-outline", representative.id));
     card.append(title, price, meta, actions);
+    if (items.length > 1) {
+      const variants = document.createElement("details");
+      variants.className = "admin-variant-details";
+      const summary = document.createElement("summary");
+      summary.textContent = `Ver apresentações (${items.length})`;
+      variants.append(summary);
+      const variantList = document.createElement("div");
+      variantList.className = "admin-variant-list";
+      items.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "admin-variant-row";
+        const label = document.createElement("div");
+        label.className = "admin-variant-label";
+        const variantName = document.createElement("strong");
+        variantName.textContent = [item.nome !== (item.grupo || item.nome) ? item.nome : "", item.tamanho || "Unidade"].filter(Boolean).join(" · ");
+        const variantPrice = document.createElement("small");
+        variantPrice.textContent = item.precoIndefinido ? "Consultar preço" : money(item.preco);
+        label.append(variantName, variantPrice);
+        const variantStatus = document.createElement("span");
+        variantStatus.className = "admin-pill " + (item.ativo ? (item.disponivel ? "available" : "unavailable") : "archived-label");
+        variantStatus.textContent = !item.ativo ? "Arquivado" : item.disponivel ? "Disponível" : "Em falta";
+        const variantActions = document.createElement("div");
+        variantActions.className = "admin-variant-actions";
+        variantActions.append(actionButton("availability", item.disponivel ? "Marcar em falta" : "Disponível", "button button-outline", item.id));
+        variantActions.append(actionButton("archive", item.ativo ? "Arquivar" : "Restaurar", "button button-outline", item.id));
+        row.append(label, variantStatus, variantActions);
+        if (item.retornavel) {
+          const returnable = document.createElement("span");
+          returnable.className = "admin-pill";
+          returnable.textContent = "Retornável";
+          row.insertBefore(returnable, variantActions);
+        }
+        variantList.append(row);
+      });
+      variants.append(variantList);
+      card.append(variants);
+    } else {
+      const item = items[0] || product;
+      if (item.retornavel) {
+        const returnable = document.createElement("span");
+        returnable.className = "admin-pill";
+        returnable.textContent = "Retornável";
+        meta.append(returnable);
+      }
+      actions.append(actionButton("availability", item.disponivel ? "Marcar em falta" : "Marcar disponível", "button button-outline", item.id));
+      actions.append(actionButton("archive", item.ativo ? "Arquivar" : "Restaurar", "button button-outline", item.id));
+    }
     return card;
   }
 
@@ -642,6 +716,10 @@
   }
 
   function bindEvents() {
+    $("#dashboard-view").addEventListener("click", event => {
+      const button = event.target.closest("[data-admin-section], [data-open-admin-section]");
+      if (button) setAdminSection(button.dataset.adminSection || button.dataset.openAdminSection);
+    });
     $("#login-form").addEventListener("submit", handleLogin);
     $("#first-password-form").addEventListener("submit", handleFirstPassword);
     $("#product-form").addEventListener("submit", saveProduct);
@@ -652,6 +730,12 @@
     $("#quick-bill-form").addEventListener("submit", handleQuickBillSubmit);
     $("#quick-bill-items").addEventListener("click", handleQuickBillItems);
     $("#quick-bill-clear").addEventListener("click", () => { state.quickBill = []; setQuickBillStatus(""); renderQuickBill(); });
+    $("#quick-bill-quantity").addEventListener("change", event => {
+      const custom = event.target.value === "custom";
+      $("#quick-bill-custom-label").hidden = !custom;
+      $("#quick-bill-custom-quantity").required = custom;
+      if (custom) $("#quick-bill-custom-quantity").focus();
+    });
     $("#logout-button").addEventListener("click", logout);
     $("#product-add").addEventListener("click", () => openProduct(null));
     $("#categories-open").addEventListener("click", () => $("#categories-dialog").showModal());
