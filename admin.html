@@ -59,15 +59,29 @@
           <p class="eyebrow"><span class="eyebrow-line"></span> CARDÁPIO DO BAR</p>
           <h1 id="dashboard-title">Administração <em>simples.</em></h1>
         </div>
-        <button class="button button-outline" id="categories-open" type="button">Gerenciar categorias</button>
-      </div>
-      <div class="stats-grid" aria-label="Resumo do catálogo">
-        <article class="stat-card"><span>PRODUTOS ATIVOS</span><strong id="active-count">0</strong></article>
-        <article class="stat-card"><span>INDISPONÍVEIS</span><strong id="unavailable-count">0</strong></article>
-        <article class="stat-card"><span>CATEGORIAS ATIVAS</span><strong id="category-count">0</strong></article>
       </div>
       <div id="admin-status" class="admin-status" role="status" aria-live="polite" hidden></div>
-      <section class="quick-bill" aria-labelledby="quick-bill-title">
+      <nav class="admin-menu" aria-label="Menu administrativo">
+        <button type="button" data-admin-section="summary" aria-current="page">Resumo</button>
+        <button type="button" data-admin-section="quick-bill">Conta rápida</button>
+        <button type="button" data-admin-section="products">Produtos</button>
+      </nav>
+
+      <section id="admin-section-summary" class="admin-section" aria-labelledby="summary-title">
+        <div class="stats-grid" aria-label="Resumo do catálogo">
+          <article class="stat-card"><span>PRODUTOS ATIVOS</span><strong id="active-count">0</strong></article>
+          <article class="stat-card"><span>INDISPONÍVEIS</span><strong id="unavailable-count">0</strong></article>
+          <article class="stat-card"><span>CATEGORIAS ATIVAS</span><strong id="category-count">0</strong></article>
+        </div>
+        <div class="admin-shortcuts">
+          <h2 id="summary-title">O que você precisa fazer?</h2>
+          <button class="admin-shortcut" type="button" data-open-admin-section="quick-bill"><span><strong>Montar uma conta</strong><small>Adicionar produtos e calcular o total de uma pessoa.</small></span><b aria-hidden="true">→</b></button>
+          <button class="admin-shortcut" type="button" data-open-admin-section="products"><span><strong>Gerenciar produtos</strong><small>Atualizar preços, disponibilidade e apresentações.</small></span><b aria-hidden="true">→</b></button>
+        </div>
+      </section>
+
+      <section id="admin-section-quick-bill" class="admin-section" aria-labelledby="quick-bill-title" hidden>
+        <section class="quick-bill">
         <div class="quick-bill-heading">
           <div>
             <p class="eyebrow"><span class="eyebrow-line"></span> ATENDIMENTO</p>
@@ -82,7 +96,15 @@
               <select id="quick-bill-product" required><option value="">Escolha um produto</option></select>
             </label>
             <label for="quick-bill-quantity">Quantidade
-              <input id="quick-bill-quantity" type="number" min="1" max="999" step="1" value="1" inputmode="numeric" required>
+              <select id="quick-bill-quantity" required>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                <option value="12">12</option><option value="15">15</option><option value="20">20</option><option value="25">25</option>
+                <option value="30">30</option><option value="50">50</option><option value="100">100</option><option value="custom">Outra quantidade…</option>
+              </select>
+            </label>
+            <label id="quick-bill-custom-label" for="quick-bill-custom-quantity" hidden>Digite a quantidade
+              <input id="quick-bill-custom-quantity" type="number" min="1" max="999" step="1" value="11" inputmode="numeric">
             </label>
             <button class="button button-yellow" type="submit">Adicionar à conta</button>
           </div>
@@ -94,14 +116,27 @@
         <div class="quick-bill-total"><span>Total parcial</span><strong id="quick-bill-total">R$ 0,00</strong></div>
         <p id="quick-bill-price-note" class="quick-bill-price-note" hidden>Há valores de exemplo nesta conta. Confirme esses preços antes de cobrar.</p>
         <p class="quick-bill-footnote">Conta de conferência: não registra pedido nem altera estoque.</p>
+        </section>
       </section>
+
+      <section id="admin-section-products" class="admin-section" aria-labelledby="products-title" hidden>
+        <div class="products-heading">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> CATÁLOGO</p>
+            <h2 id="products-title">Produtos</h2>
+            <p>Busque uma família para editar suas apresentações e preços.</p>
+          </div>
+          <div class="products-actions">
+            <button class="button button-outline" id="categories-open" type="button">Categorias</button>
+            <button class="button button-yellow" id="product-add" type="button">+ Novo produto</button>
+          </div>
+        </div>
       <div class="catalog-toolbar">
         <label class="admin-search"><span class="sr-only">Buscar produtos</span><input id="product-search" type="search" placeholder="Buscar produto ou apresentação…"></label>
         <label class="filter-label">Categoria
           <select id="category-filter"><option value="">Todas</option></select>
         </label>
         <label class="archived-filter"><input id="show-archived" type="checkbox"> Mostrar arquivados</label>
-        <button class="button button-yellow" id="product-add" type="button">+ Novo produto</button>
       </div>
       <div id="product-list" class="admin-product-list" aria-live="polite"></div>
       <nav class="pagination" id="pagination" aria-label="Páginas dos produtos" hidden>
@@ -109,6 +144,7 @@
         <span id="page-label"></span>
         <button class="button button-outline" id="next-page" type="button">Próxima</button>
       </nav>
+      </section>
     </section>
   </main>
 
