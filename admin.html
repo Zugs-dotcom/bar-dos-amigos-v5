@@ -34,7 +34,7 @@
         <input id="login-password" name="password" type="password" autocomplete="current-password" required>
         <button class="button button-yellow form-submit" type="submit">Entrar <span aria-hidden="true">→</span></button>
       </form>
-      <p id="setup-warning" class="setup-warning" hidden>O acesso ainda precisa ser conectado ao Google Sheets. Siga as instruções do arquivo README incluído no pacote V5.</p>
+      <p id="setup-warning" class="setup-warning" hidden>O acesso ainda precisa ser conectado ao Google Sheets. Siga as instruções do arquivo README incluído no pacote V5.1.</p>
       <p class="auth-security">A senha é validada pelo Apps Script. Ela não fica no código público do cardápio.</p>
     </section>
 
@@ -84,30 +84,46 @@
     </section>
   </main>
 
-  <dialog class="admin-dialog" id="product-dialog" aria-labelledby="product-dialog-title">
+  <dialog class="admin-dialog product-edit-dialog" id="product-dialog" aria-labelledby="product-dialog-title">
     <form id="product-form" class="dialog-form">
-      <div class="dialog-heading"><div><p class="eyebrow">CATÁLOGO</p><h2 id="product-dialog-title">Novo produto</h2></div><button class="dialog-close" type="button" data-close="product-dialog" aria-label="Fechar">×</button></div>
-      <input type="hidden" name="id">
-      <div class="form-grid">
-        <label class="span-2">Nome do produto<input name="nome" maxlength="100" required></label>
-        <label>Categoria<select name="categoria" required></select></label>
-        <label>Subcategoria<input name="subcategoria" maxlength="80"></label>
-        <label>Apresentação / tamanho<input name="tamanho" maxlength="80" placeholder="Ex.: Lata 350 ml"></label>
-        <label>Família de opções<input name="grupo" maxlength="100" placeholder="Agrupa sabores ou versões"></label>
-        <label>Preço (R$)<input name="preco" type="number" min="0" max="99999" step="0.01" inputmode="decimal"></label>
-        <label>Ilustração<select name="ilustracao"><option value="assets/ilustracoes/drink.svg">Bebida / drink</option><option value="assets/ilustracoes/cerveja-garrafa.svg">Cerveja em garrafa</option><option value="assets/ilustracoes/cerveja-lata.svg">Cerveja em lata</option><option value="assets/ilustracoes/coxinha.svg">Coxinha</option><option value="assets/ilustracoes/empada.svg">Empada</option><option value="assets/ilustracoes/pastel.svg">Pastel</option><option value="assets/ilustracoes/risole.svg">Risole</option><option value="assets/ilustracoes/enroladinho.svg">Enroladinho</option><option value="assets/ilustracoes/porcao.svg">Porção / snack</option></select></label>
-        <label class="span-2">Descrição<textarea name="descricao" rows="2" maxlength="300"></textarea></label>
-        <label class="span-2">Ingredientes ou observação<textarea name="ingredientes" rows="2" maxlength="300"></textarea></label>
-      </div>
-      <div class="check-grid">
-        <label><input type="checkbox" name="precoIndefinido"> Consultar preço no balcão</label>
-        <label><input type="checkbox" name="disponivel" checked> Disponível agora</label>
-        <label><input type="checkbox" name="ativo" checked> Exibir no cardápio</label>
-        <label><input type="checkbox" name="retornavel"> Embalagem retornável</label>
+      <div class="dialog-heading"><div><p class="eyebrow">CATÁLOGO</p><h2 id="product-dialog-title">Novo produto</h2></div><button class="dialog-close" type="button" data-close="product-dialog" aria-label="Fechar formulário">×</button></div>
+      <div class="dialog-scroll">
+        <input type="hidden" name="id">
+        <div class="form-grid">
+          <label class="span-2">Produto principal<input name="nome" maxlength="100" required placeholder="Ex.: Coca-Cola"><small>As apresentações serão agrupadas com este nome no cardápio.</small></label>
+          <label>Categoria<select name="categoria" required></select></label>
+          <label>Subcategoria<input name="subcategoria" maxlength="80" placeholder="Ex.: Refrigerantes"></label>
+          <label class="span-2">Ilustração<select name="ilustracao"><option value="assets/ilustracoes/drink.svg">Bebida / drink</option><option value="assets/ilustracoes/cerveja-garrafa.svg">Cerveja em garrafa</option><option value="assets/ilustracoes/cerveja-lata.svg">Cerveja em lata</option><option value="assets/ilustracoes/coxinha.svg">Coxinha</option><option value="assets/ilustracoes/empada.svg">Empada</option><option value="assets/ilustracoes/pastel.svg">Pastel</option><option value="assets/ilustracoes/risole.svg">Risole</option><option value="assets/ilustracoes/enroladinho.svg">Enroladinho</option><option value="assets/ilustracoes/porcao.svg">Porção / snack</option></select></label>
+          <label class="span-2">Descrição útil ao cliente<textarea name="descricao" rows="2" maxlength="300" placeholder="Opcional. Evite repetir preço e disponibilidade."></textarea></label>
+          <label class="span-2">Ingredientes ou observação<textarea name="ingredientes" rows="2" maxlength="300"></textarea></label>
+        </div>
+        <section class="presentations-section" aria-labelledby="presentations-title">
+          <div class="presentations-heading"><div><h3 id="presentations-title">Apresentações</h3><p>Cadastre tamanhos e preços diferentes no mesmo produto.</p></div><button class="button button-outline" id="presentation-add" type="button">+ Adicionar apresentação</button></div>
+          <div id="presentation-list" class="presentation-list"></div>
+          <p class="presentation-help">Ao remover uma apresentação já salva, ela será arquivada para preservar o histórico da planilha.</p>
+        </section>
       </div>
       <div class="dialog-actions"><button class="button button-outline" type="button" data-close="product-dialog">Cancelar</button><button class="button button-yellow" type="submit">Salvar produto</button></div>
     </form>
   </dialog>
+
+  <template id="presentation-template">
+    <article class="presentation-row">
+      <div class="presentation-row-heading"><h4>Apresentação</h4><button class="presentation-remove" type="button" data-remove-presentation>Remover</button></div>
+      <div class="presentation-grid">
+        <label>Nome específico (opcional)<input name="nomeEspecifico" maxlength="100" placeholder="Use quando a opção tiver outro nome"></label>
+        <label>Embalagem / tipo<select name="tipo" required></select><input name="tipoPersonalizado" maxlength="50" placeholder="Digite o tipo" hidden></label>
+        <label>Tamanho<select name="tamanho" required></select><input name="tamanhoPersonalizado" maxlength="50" placeholder="Digite o tamanho" hidden></label>
+        <label>Preço (R$)<input name="preco" type="number" min="0" max="99999" step="0.01" inputmode="decimal"></label>
+      </div>
+      <div class="presentation-flags">
+        <label><input type="checkbox" name="precoIndefinido"> Consultar preço</label>
+        <label><input type="checkbox" name="disponivel" checked> Disponível</label>
+        <label><input type="checkbox" name="ativo" checked> Exibir no cardápio</label>
+        <label><input type="checkbox" name="retornavel"> Retornável</label>
+      </div>
+    </article>
+  </template>
 
   <dialog class="admin-dialog categories-dialog" id="categories-dialog" aria-labelledby="categories-title">
     <div class="dialog-form">

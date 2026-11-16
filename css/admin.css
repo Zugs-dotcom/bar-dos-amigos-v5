@@ -70,6 +70,32 @@
 .empty-admin { grid-column: 1/-1; padding: 36px 18px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
 .button:disabled { cursor: not-allowed; opacity: .55; }
 
+.modal-open { position: fixed; inset-inline: 0; width: 100%; overflow: hidden; overscroll-behavior: none; }
+.product-edit-dialog { width: min(760px, calc(100% - 24px)); max-height: min(92vh, 920px); overflow: hidden; }
+.product-edit-dialog .dialog-form { display: grid; grid-template-rows: auto minmax(0,1fr) auto; height: min(92vh, 920px); max-height: inherit; padding: 0; gap: 0; }
+.product-edit-dialog .dialog-heading { margin: 0; padding: 20px clamp(18px,4vw,30px) 12px; }
+.dialog-scroll { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 12px clamp(18px,4vw,30px) 22px; }
+.form-grid > label small { color: #b9ad98; font-size: 10px; font-weight: 500; letter-spacing: 0; line-height: 1.4; text-transform: none; }
+.presentations-section { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--line); }
+.presentations-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.presentations-heading h3 { margin: 0; font: 700 25px/1 var(--display); }
+.presentations-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.presentations-heading .button { min-height: 42px; padding: 9px 12px; white-space: nowrap; }
+.presentation-list { display: grid; gap: 10px; }
+.presentation-row { min-width: 0; padding: 13px; border: 1px solid var(--line); background: #171512; }
+.presentation-row-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.presentation-row-heading h4 { margin: 0; color: var(--yellow); font-size: 11px; letter-spacing: .8px; text-transform: uppercase; }
+.presentation-remove { min-height: 34px; padding: 6px 9px; border: 1px solid #5a453a; background: transparent; color: #f0b6a3; font-size: 10px; cursor: pointer; }
+.presentation-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr .75fr; gap: 9px; }
+.presentation-grid label { display: grid; align-content: start; gap: 6px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; }
+.presentation-grid input:not([type=checkbox]), .presentation-grid select { width: 100%; min-width: 0; min-height: 43px; padding: 9px 10px; border: 1px solid #514838; border-radius: 2px; background: #211e19; color: var(--paper); font-size: 13px; letter-spacing: normal; text-transform: none; }
+.presentation-flags { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 17px; margin-top: 11px; }
+.presentation-flags label { display: flex; align-items: center; gap: 6px; color: #ded4c5; font-size: 10px; }
+.presentation-flags input { width: 17px; height: 17px; accent-color: var(--yellow); }
+.presentation-help { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.product-edit-dialog .dialog-actions { position: relative; z-index: 2; margin: 0; padding: 12px clamp(18px,4vw,30px) max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #211e19; }
+.product-edit-dialog .dialog-actions .button { min-height: 46px; padding-inline: 18px; }
+
 @media (max-width: 850px) {
   .catalog-toolbar { grid-template-columns: 1fr 1fr; }
   .admin-search { grid-column: 1/-1; }
@@ -105,4 +131,20 @@
   .category-editor-card .category-enabled { grid-column: 1/-1; }
   .category-add-form { grid-template-columns: 1fr 82px; }
   .category-add-form .button { grid-column: 1/-1; }
+  .product-edit-dialog { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: 100dvh; margin: 0; border: 0; }
+  .product-edit-dialog .dialog-form { height: 100%; max-height: 100%; }
+  .product-edit-dialog .dialog-heading { padding: max(15px, env(safe-area-inset-top)) 15px 11px; }
+  .product-edit-dialog .dialog-heading h2 { font-size: clamp(27px, 8vw, 34px); }
+  .dialog-scroll { padding: 10px 15px 20px; }
+  .form-grid { gap: 11px; }
+  .admin-dialog.product-edit-dialog input:not([type=checkbox]), .admin-dialog.product-edit-dialog select, .admin-dialog.product-edit-dialog textarea { font-size: 16px; }
+  .presentations-heading { align-items: stretch; flex-direction: column; }
+  .presentations-heading .button { width: 100%; }
+  .presentation-grid { grid-template-columns: 1fr 1fr; }
+  .presentation-grid label:first-child { grid-column: 1/-1; }
+  .presentation-flags { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10px; }
+  .presentation-flags label { min-height: 28px; }
+  .product-edit-dialog .dialog-actions { padding: 10px 14px max(12px, env(safe-area-inset-bottom)); }
+  .product-edit-dialog .dialog-actions .button { flex: 1; min-width: 0; }
+  .product-edit-dialog .dialog-actions .button-yellow { flex: 1.35; }
 }

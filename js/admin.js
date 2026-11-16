@@ -1,9 +1,148 @@
 (() => {
   "use strict";
   const $ = (selector, root=document) => root.querySelector(selector);
-  const state = { token: "", categories: [], products: [], page: 0, pageSize: 20, search: "", category: "", showArchived: false };
+  const state = { token: "", categories: [], products: [], page: 0, pageSize: 20, search: "", category: "", showArchived: false, editingProducts: [], commonInitial: {}, initialFormSnapshot: "", bodyScrollY: 0, saving: false };
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const tokenKey = "bar-amigos-admin-session-v5";
+  const PRESENTATION_TYPES = {
+    cervejas: ["Lata", "Garrafa", "Long neck", "Chope", "Personalizado"],
+    refrigerantes: ["Lata", "Garrafa", "Copo", "Personalizado"],
+    aguas: ["Garrafa", "Lata", "Copo", "Personalizado"],
+    energeticos: ["Lata", "Garrafa", "Personalizado"],
+    destilados: ["Dose", "Garrafa", "Personalizado"],
+    drinks: ["Copo", "Dose", "Personalizado"],
+    salgados: ["Unidade", "Porção", "Personalizado"],
+    porcoes: ["Porção", "Unidade", "Personalizado"],
+    snacks: ["Pacote", "Unidade", "Personalizado"]
+  };
+  const PRESENTATION_SIZES = {
+    cervejas: ["269 ml", "300 ml", "330 ml", "350 ml", "473 ml", "600 ml", "1 litro"],
+    refrigerantes: ["200 ml", "269 ml", "350 ml", "600 ml", "1 litro", "1,5 litro", "2 litros"],
+    aguas: ["200 ml", "300 ml", "350 ml", "500 ml", "600 ml", "1 litro", "1,5 litro", "2 litros"],
+    energeticos: ["250 ml", "269 ml", "473 ml", "1 litro"],
+    destilados: ["30 ml", "45 ml", "50 ml", "60 ml", "700 ml", "750 ml", "1 litro"],
+    drinks: ["300 ml", "400 ml", "500 ml", "Dose"],
+    salgados: ["Pequena", "Média", "Grande", "Unidade"],
+    porcoes: ["Pequena", "Média", "Grande", "Individual", "Para compartilhar"],
+    snacks: ["Unidade", "30–37 g", "40 g", "48 g", "60 g", "68 g", "85 g", "115 g", "150 g"]
+  };
+  const DEFAULT_TYPES = ["Unidade", "Porção", "Lata", "Garrafa", "Copo", "Personalizado"];
+  const DEFAULT_SIZES = ["Pequena", "Média", "Grande", "Unidade"];
+
+  function normalizeKey(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR"); }
+  function familyProducts(product) {
+    if (!product) return [];
+    const family = normalizeKey(product.grupo || product.nome);
+    return state.products.filter(item => item.categoria === product.categoria && normalizeKey(item.grupo || item.nome) === family);
+  }
+
+  function selectOptions(select, values, placeholder, selected, includeCustom=false, includeNone=false) {
+    select.replaceChildren(new Option(placeholder, ""));
+    if (includeNone) select.add(new Option("Sem tamanho indicado", "__none"));
+    values.filter(value => !includeCustom || value !== "Personalizado").forEach(value => select.add(new Option(value, value)));
+    if (includeCustom) select.add(new Option("Personalizado", "__custom"));
+    if (selected && ![...select.options].some(option => option.value === selected)) select.add(new Option(selected, selected));
+    select.value = selected || "";
+  }
+
+  function splitPresentation(product) {
+    const text = String(product?.tamanho || "").trim();
+    const knownTypes = [...new Set(Object.values(PRESENTATION_TYPES).flat().filter(value => value !== "Personalizado"))].sort((a,b) => b.length - a.length);
+    const prefix = knownTypes.find(value => normalizeKey(text).startsWith(normalizeKey(value) + " ") || normalizeKey(text) === normalizeKey(value));
+    const storedType = String(product?.embalagem || "").trim();
+    const type = prefix || (knownTypes.some(value => normalizeKey(value) === normalizeKey(storedType)) ? storedType : "__custom");
+    const remainder = prefix ? text.slice(prefix.length).trim() : "";
+    return { type, size: remainder, customText: type === "__custom" ? text : "" };
+  }
+
+  function configurePresentationRow(row, categoryId, existing) {
+    const typeSelect = row.querySelector('[name="tipo"]');
+    const sizeSelect = row.querySelector('[name="tamanho"]');
+    const typeCustom = row.querySelector('[name="tipoPersonalizado"]');
+    const sizeCustom = row.querySelector('[name="tamanhoPersonalizado"]');
+    const parts = existing ? splitPresentation(existing) : null;
+    const selectedType = parts ? parts.type : typeSelect.value;
+    const currentSize = sizeSelect.value;
+    selectOptions(typeSelect, PRESENTATION_TYPES[categoryId] || DEFAULT_TYPES, "Escolha um tipo", selectedType, true);
+    const sizeChoices = PRESENTATION_SIZES[categoryId] || DEFAULT_SIZES;
+    selectOptions(sizeSelect, sizeChoices, "Escolha um tamanho", currentSize, true, true);
+    if (parts) {
+      const availableSizes = [...sizeSelect.options].map(option => option.value);
+      sizeSelect.value = parts.type === "__custom" ? "__none" : (parts.size ? (availableSizes.includes(parts.size) ? parts.size : "__custom") : "__none");
+      if (parts.type === "__custom") typeCustom.value = parts.customText;
+      else typeCustom.value = "";
+      sizeCustom.value = parts.size && sizeSelect.value === "__custom" ? parts.size : "";
+    }
+    const typeIsCustom = typeSelect.value === "__custom";
+    typeCustom.hidden = typeSelect.value !== "__custom";
+    typeCustom.required = !typeCustom.hidden;
+    sizeCustom.hidden = sizeSelect.value !== "__custom";
+    sizeCustom.required = !sizeCustom.hidden;
+    if (!typeIsCustom) typeCustom.value = "";
+  }
+
+  function presentationLabel(row) {
+    const typeSelect = row.querySelector('[name="tipo"]');
+    const sizeSelect = row.querySelector('[name="tamanho"]');
+    const type = typeSelect.value === "__custom" ? row.querySelector('[name="tipoPersonalizado"]').value.trim() : typeSelect.value;
+    const size = sizeSelect.value === "__custom" ? row.querySelector('[name="tamanhoPersonalizado"]').value.trim() : (sizeSelect.value === "__none" ? "" : sizeSelect.value);
+    return [type, size].filter(Boolean).join(" ");
+  }
+
+  function updatePresentationHeadings() {
+    const rows = [...$("#presentation-list").querySelectorAll(".presentation-row")];
+    rows.forEach((row, index) => {
+      row.querySelector(".presentation-row-heading h4").textContent = `Apresentação ${index + 1}`;
+      row.querySelector("[data-remove-presentation]").disabled = rows.length < 2;
+    });
+    $("#presentation-add").disabled = rows.length >= 30;
+  }
+
+  function addPresentationRow(product=null, familyName="") {
+    const template = $("#presentation-template");
+    const row = template.content.firstElementChild.cloneNode(true);
+    if (product?.id) row.dataset.productId = product.id;
+    const name = row.querySelector('[name="nomeEspecifico"]');
+    name.value = product && product.nome !== familyName ? product.nome : "";
+    const price = row.querySelector('[name="preco"]');
+    price.value = product?.precoIndefinido ? "" : (product?.preco ?? "");
+    const flags = { precoIndefinido: Boolean(product?.precoIndefinido), disponivel: product ? Boolean(product.disponivel) : true, ativo: product ? Boolean(product.ativo) : true, retornavel: Boolean(product?.retornavel) };
+    Object.entries(flags).forEach(([key, value]) => { row.querySelector(`[name="${key}"]`).checked = value; });
+    if (product) configurePresentationRow(row, $("#product-form").elements.namedItem("categoria").value, product);
+    else configurePresentationRow(row, $("#product-form").elements.namedItem("categoria").value, null);
+    price.disabled = flags.precoIndefinido;
+    price.required = !flags.precoIndefinido;
+    $("#presentation-list").append(row);
+    updatePresentationHeadings();
+    return row;
+  }
+
+  function formSnapshot(form) {
+    const values = [...form.querySelectorAll("input, select, textarea")].map(field => field.type === "checkbox" ? [field.name, field.checked] : [field.name, field.value]);
+    const rowIds = [...form.querySelectorAll(".presentation-row")].map(row => row.dataset.productId || "");
+    return JSON.stringify({ values, rowIds });
+  }
+
+  function productFormIsDirty() { return formSnapshot($("#product-form")) !== state.initialFormSnapshot; }
+
+  function lockPageScroll() {
+    state.bodyScrollY = window.scrollY;
+    document.body.classList.add("modal-open");
+    document.body.style.top = `-${state.bodyScrollY}px`;
+  }
+
+  function unlockPageScroll() {
+    document.body.classList.remove("modal-open");
+    document.body.style.top = "";
+    window.scrollTo(0, state.bodyScrollY);
+  }
+
+  function requestProductClose() {
+    if (state.saving) return;
+    if (productFormIsDirty() && !window.confirm("Descartar as alterações feitas neste produto?")) return;
+    state.initialFormSnapshot = "";
+    $("#product-dialog").close();
+  }
 
   function setStatus(message, isError=false) {
     const box = $("#dashboard-view").hidden ? $("#auth-status") : $("#admin-status");
@@ -86,7 +225,8 @@
     const name = document.createElement("h2");
     name.textContent = product.grupo || product.nome;
     const detail = document.createElement("p");
-    const details = [categoryName(product.categoria), product.nome !== product.grupo ? product.nome : "", product.tamanho, product.subcategoria].filter(Boolean);
+    const optionCount = familyProducts(product).length;
+    const details = [categoryName(product.categoria), product.grupo && product.nome !== product.grupo ? product.nome : "", product.tamanho, optionCount > 1 ? `${optionCount} apresentações` : "", product.subcategoria].filter(Boolean);
     detail.textContent = details.join(" · ");
     title.append(name, detail);
 
@@ -118,7 +258,7 @@
 
     const actions = document.createElement("div");
     actions.className = "admin-product-actions";
-    actions.append(actionButton("edit", "Editar produto", "button button-outline", product.id));
+    actions.append(actionButton("edit", optionCount > 1 ? "Editar opções" : "Editar produto", "button button-outline", product.id));
     actions.append(actionButton("availability", product.disponivel ? "Marcar em falta" : "Marcar disponível", "button button-outline", product.id));
     actions.append(actionButton("archive", product.ativo ? "Arquivar" : "Restaurar", "button button-outline", product.id));
     card.append(title, price, meta, actions);
@@ -187,23 +327,28 @@
     const form = $("#product-form");
     form.reset();
     refreshCategoryOptions();
+    const variants = product ? familyProducts(product) : [];
+    const familyName = product?.grupo || product?.nome || "";
+    state.editingProducts = variants.map(item => ({ ...item }));
     form.elements.namedItem("id").value = product?.id || "";
-    form.elements.namedItem("nome").value = product?.nome || "";
+    form.elements.namedItem("nome").value = familyName;
     form.elements.namedItem("categoria").value = product?.categoria || "";
     form.elements.namedItem("subcategoria").value = product?.subcategoria || "";
-    form.elements.namedItem("tamanho").value = product?.tamanho || "";
-    form.elements.namedItem("grupo").value = product?.grupo || "";
-    form.elements.namedItem("preco").value = product?.precoIndefinido ? "" : (product?.preco ?? "");
     form.elements.namedItem("ilustracao").value = product?.ilustracao || "assets/ilustracoes/drink.svg";
-    form.elements.namedItem("descricao").value = product?.descricao || "";
-    form.elements.namedItem("ingredientes").value = product?.ingredientes || "";
-    form.elements.namedItem("precoIndefinido").checked = Boolean(product?.precoIndefinido);
-    form.elements.namedItem("disponivel").checked = product ? Boolean(product.disponivel) : true;
-    form.elements.namedItem("ativo").checked = product ? Boolean(product.ativo) : true;
-    form.elements.namedItem("retornavel").checked = Boolean(product?.retornavel);
-    form.elements.namedItem("preco").disabled = Boolean(product?.precoIndefinido);
-    form.elements.namedItem("preco").required = !product?.precoIndefinido;
+    form.elements.namedItem("descricao").value = variants[0]?.descricao || "";
+    form.elements.namedItem("ingredientes").value = variants[0]?.ingredientes || "";
+    state.commonInitial = {
+      descricao: form.elements.namedItem("descricao").value,
+      ingredientes: form.elements.namedItem("ingredientes").value,
+      subcategoria: form.elements.namedItem("subcategoria").value,
+      ilustracao: form.elements.namedItem("ilustracao").value
+    };
+    $("#presentation-list").replaceChildren();
+    if (variants.length) variants.forEach(item => addPresentationRow(item, familyName));
+    else addPresentationRow(null, familyName);
     $("#product-dialog-title").textContent = product ? "Editar produto" : "Novo produto";
+    state.initialFormSnapshot = formSnapshot(form);
+    lockPageScroll();
     $("#product-dialog").showModal();
   }
 
@@ -211,32 +356,53 @@
     event.preventDefault();
     const form = event.currentTarget;
     const element = name => form.elements.namedItem(name);
-    const product = {
-      id: element("id").value,
-      nome: element("nome").value,
-      categoria: element("categoria").value,
-      subcategoria: element("subcategoria").value,
-      tamanho: element("tamanho").value,
-      grupo: element("grupo").value,
-      preco: element("precoIndefinido").checked ? 0 : Number(element("preco").value || 0),
-      precoIndefinido: element("precoIndefinido").checked,
-      ilustracao: element("ilustracao").value,
-      descricao: element("descricao").value,
-      ingredientes: element("ingredientes").value,
-      disponivel: element("disponivel").checked,
-      ativo: element("ativo").checked,
-      retornavel: element("retornavel").checked,
-      origem: "Atualizado pelo painel administrativo."
-    };
+    const familyName = element("nome").value.trim();
+    const category = element("categoria").value;
+    const description = element("descricao").value.trim();
+    const ingredients = element("ingredientes").value.trim();
+    const rows = [...$("#presentation-list").querySelectorAll(".presentation-row")];
+    const savedIds = new Set();
+    const products = rows.map(row => {
+      const itemId = row.dataset.productId || "";
+      if (itemId) savedIds.add(itemId);
+      const original = state.editingProducts.find(item => item.id === itemId);
+      const priceUnknown = row.querySelector('[name="precoIndefinido"]').checked;
+      const type = row.querySelector('[name="tipo"]').value === "__custom" ? row.querySelector('[name="tipoPersonalizado"]').value.trim() : row.querySelector('[name="tipo"]').value;
+      const sizeChoice = row.querySelector('[name="tamanho"]').value;
+      const size = sizeChoice === "__custom" ? row.querySelector('[name="tamanhoPersonalizado"]').value.trim() : (sizeChoice === "__none" ? "" : sizeChoice);
+      const presentation = [type, size].filter(Boolean).join(" ");
+      return {
+        id: itemId,
+        categoria: category,
+        subcategoria: original && element("subcategoria").value.trim() === state.commonInitial.subcategoria ? original.subcategoria : element("subcategoria").value.trim(),
+        nome: row.querySelector('[name="nomeEspecifico"]').value.trim() || familyName,
+        descricao: original && description === state.commonInitial.descricao ? original.descricao : description,
+        ingredientes: original && ingredients === state.commonInitial.ingredientes ? original.ingredientes : ingredients,
+        tamanho: presentation,
+        preco: priceUnknown ? 0 : Number(row.querySelector('[name="preco"]').value || 0),
+        precoIndefinido: priceUnknown,
+        ilustracao: original && element("ilustracao").value === state.commonInitial.ilustracao ? original.ilustracao : element("ilustracao").value,
+        origem: "Atualizado pelo painel administrativo.",
+        disponivel: row.querySelector('[name="disponivel"]').checked,
+        ativo: row.querySelector('[name="ativo"]').checked,
+        retornavel: row.querySelector('[name="retornavel"]').checked,
+        embalagem: type,
+        grupo: familyName
+      };
+    });
+    state.editingProducts.filter(item => !savedIds.has(item.id)).forEach(item => products.push({ ...item, ativo: false, origem: "Apresentação arquivada pelo painel administrativo." }));
     const button = event.submitter;
     button.disabled = true;
+    state.saving = true;
+    $("#product-form [data-close='product-dialog']").disabled = true;
     try {
-      await window.BarBridge.call("saveProduct", state.token, product);
+      await window.BarBridge.call("saveProducts", state.token, products);
+      state.initialFormSnapshot = "";
       $("#product-dialog").close();
       await loadAdminData();
-      setStatus("Produto salvo no Google Sheets.");
+      setStatus(`${products.length} apresentação${products.length === 1 ? "" : "ões"} salva${products.length === 1 ? "" : "s"} no Google Sheets.`);
     } catch (error) { setStatus(error.message, true); }
-    finally { button.disabled = false; }
+    finally { button.disabled = false; state.saving = false; $("#product-form [data-close='product-dialog']").disabled = false; }
   }
 
   async function changeProduct(product, update, successMessage) {
@@ -378,19 +544,43 @@
     $("#product-add").addEventListener("click", () => openProduct(null));
     $("#categories-open").addEventListener("click", () => $("#categories-dialog").showModal());
     $("#change-password-open").addEventListener("click", () => $("#change-password-dialog").showModal());
+    $("#presentation-add").addEventListener("click", () => addPresentationRow(null, $("#product-form").elements.namedItem("nome").value.trim()));
+    $("#product-form").elements.namedItem("categoria").addEventListener("change", event => {
+      $("#presentation-list").querySelectorAll(".presentation-row").forEach(row => configurePresentationRow(row, event.target.value, null));
+    });
+    $("#presentation-list").addEventListener("change", event => {
+      const row = event.target.closest(".presentation-row");
+      if (!row) return;
+      if (event.target.name === "precoIndefinido") {
+        const price = row.querySelector('[name="preco"]');
+        price.disabled = event.target.checked;
+        price.required = !event.target.checked;
+        if (event.target.checked) price.value = "";
+      }
+      if (["tipo", "tamanho"].includes(event.target.name)) configurePresentationRow(row, $("#product-form").elements.namedItem("categoria").value, null);
+    });
+    $("#presentation-list").addEventListener("click", event => {
+      const remove = event.target.closest("[data-remove-presentation]");
+      if (!remove || remove.disabled) return;
+      remove.closest(".presentation-row").remove();
+      updatePresentationHeadings();
+    });
     $("#product-search").addEventListener("input", event => { state.search = event.target.value.trim(); state.page = 0; renderProducts(); });
     $("#category-filter").addEventListener("change", event => { state.category = event.target.value; state.page = 0; renderProducts(); });
     $("#show-archived").addEventListener("change", event => { state.showArchived = event.target.checked; state.page = 0; renderProducts(); });
     $("#previous-page").addEventListener("click", () => { state.page = Math.max(0, state.page - 1); renderProducts(); });
     $("#next-page").addEventListener("click", () => { state.page++; renderProducts(); });
-    $("#product-form").elements.namedItem("precoIndefinido").addEventListener("change", event => {
-      const price = $("#product-form").elements.namedItem("preco");
-      price.disabled = event.target.checked;
-      price.required = !event.target.checked;
-      if (event.target.checked) price.value = "";
+    document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => {
+      if (button.dataset.close === "product-dialog") requestProductClose();
+      else $("#" + button.dataset.close).close();
+    }));
+    $("#product-dialog").addEventListener("cancel", event => { event.preventDefault(); requestProductClose(); });
+    $("#product-dialog").addEventListener("close", unlockPageScroll);
+    window.addEventListener("beforeunload", event => {
+      if (!$("#product-dialog").open || !productFormIsDirty()) return;
+      event.preventDefault();
+      event.returnValue = "";
     });
-    document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => $("#" + button.dataset.close).close()));
-    document.querySelectorAll(".admin-dialog").forEach(dialog => dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); }));
   }
 
   async function init() {

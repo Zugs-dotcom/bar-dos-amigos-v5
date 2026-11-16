@@ -16,19 +16,20 @@
     changePassword: "apiChangePassword",
     adminData: "apiAdminData",
     saveProduct: "apiSaveProduct",
+    saveProducts: "apiSaveProducts",
     saveCategory: "apiSaveCategory",
     deleteCategory: "apiDeleteCategory",
     logout: "apiLogout"
   };
 
   function send(target, message) {
-    if (ALLOWED_PARENTS.includes(target)) window.parent.postMessage({ channel: CHANNEL, ...message }, target);
+    if (ALLOWED_PARENTS.includes(target)) window.top.postMessage({ channel: CHANNEL, ...message }, target);
   }
 
   ALLOWED_PARENTS.forEach(origin => send(origin, { type: "ready" }));
 
   window.addEventListener("message", event => {
-    if (event.source !== window.parent || !ALLOWED_PARENTS.includes(event.origin)) return;
+    if (event.source !== window.top || !ALLOWED_PARENTS.includes(event.origin)) return;
     const message = event.data;
     if (!message || message.channel !== CHANNEL || !METHODS[message.action] || !Array.isArray(message.args)) return;
     const method = METHODS[message.action];

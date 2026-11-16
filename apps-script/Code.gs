@@ -75,7 +75,7 @@ function apiPublicMenu() {
   const categories = data.categorias.filter(category => category.ativa);
   const visibleCategoryIds = new Set(categories.map(category => category.id));
   return {
-    categorias,
+    categorias: categories,
     produtos: data.produtos.filter(product => product.ativo && visibleCategoryIds.has(product.categoria)),
     sobre: data.sobre
   };
@@ -146,6 +146,48 @@ function apiSaveProduct(token, input) {
   else sheet.appendRow(row);
   logChange_(existingRow ? "Produto atualizado" : "Produto criado", product.nome);
   return { product, saved: true };
+}
+
+function apiSaveProducts(token, inputs) {
+  requireSession_(token);
+  if (!Array.isArray(inputs) || inputs.length < 1 || inputs.length > 30) {
+    throw new Error("Salve entre uma e 30 apresentações por vez.");
+  }
+  const products = inputs.map(input => normalizeProduct_(input || {}));
+  const ids = new Set();
+  products.forEach(product => {
+    if (ids.has(product.id)) throw new Error("Há apresentações repetidas neste formulário. Revise os dados antes de salvar.");
+    ids.add(product.id);
+  });
+  const categories = new Set(readCatalog_().categorias.map(category => category.id));
+  products.forEach(product => {
+    if (!categories.has(product.categoria)) throw new Error("Escolha uma categoria existente.");
+  });
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getSheet_("Produtos");
+    const lastRow = sheet.getLastRow();
+    const rowById = new Map();
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, 1).getValues().forEach((row, index) => {
+        if (row[0] !== "") rowById.set(String(row[0]), index + 2);
+      });
+    }
+    const newRows = [];
+    products.forEach(product => {
+      const row = productToRow_(product);
+      const existingRow = rowById.get(product.id);
+      if (existingRow) sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
+      else newRows.push(row);
+    });
+    if (newRows.length) sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, SHEET_HEADERS.Produtos.length).setValues(newRows);
+    products.forEach(product => logChange_(rowById.has(product.id) ? "Produto atualizado" : "Produto criado", product.nome));
+  } finally {
+    lock.releaseLock();
+  }
+  return { saved: products.length };
 }
 
 function apiSaveCategory(token, input) {

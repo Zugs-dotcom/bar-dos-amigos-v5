@@ -84,6 +84,30 @@
   function makeImage(path,cls="svg-illustration"){
     const img=document.createElement("img");img.src=path||"assets/ilustracoes/drink.svg";img.alt="";img.loading="lazy";img.className=cls;return img;
   }
+  function usefulDescription(product){
+    const value=safe(product?.descricao).trim();
+    if(!value)return "";
+    const normalized=value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
+    if(/a confirmar|nao informado|preco ainda nao informado/.test(normalized))return "";
+    if(/(consulte|fale com).*(atendente|balcao|equipe|sabores|disponibilidade|valores|precos?)/.test(normalized))return "";
+    if(/consulte.*(atendente|balcao|equipe).*(disponibilidade|valores|precos?)/.test(normalized))return "";
+    if(/opcao de (bebida|produto).*(consulte|disponibilidade)/.test(normalized))return "";
+    if(/consulte os sabores e tamanhos disponiveis/.test(normalized))return "";
+    if(/salgadinho de pacote.*consulte sabores/.test(normalized))return "";
+    const compact=value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
+    const productName=safe(product?.nome).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
+    const size=safe(product?.tamanho).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
+    if(productName&&size&&compact.includes(productName)&&compact.includes(size)&&compact.split(/\s+/).length<=9)return "";
+    return value;
+  }
+  function presentationText(group){
+    const values=[...new Set(group.items.map(item=>{
+      const label=[item.nome!==group.nome?item.nome:"",item.tamanho||""].filter(Boolean).join(" · ");
+      return label;
+    }).filter(Boolean))];
+    const shown=values.slice(0,3);
+    return shown.join(" · ")+(values.length>3?` · +${values.length-3} opções`:"");
+  }
   function renderProducts(){
     const grid=$("#product-grid"), groups=visibleGroups();grid.replaceChildren();grid.setAttribute("aria-busy","true");
     groups.forEach(group=>{
@@ -91,16 +115,27 @@
       const card=document.createElement("article");card.className="product-card"+(soldOut?" is-unavailable":"");
       const art=document.createElement("div");art.className="product-art";
       const illustration=document.createElement("span");illustration.className="product-illustration";illustration.append(makeImage(group.ilustracao));
-      const tag=document.createElement("span");tag.className="product-tag"+(soldOut?" sold":"");tag.textContent=soldOut?"INDISPONÍVEL":(group.items.length>1?"VER OPÇÕES":"VER DETALHES");art.append(illustration,tag);
+      const tag=document.createElement("span");tag.className="product-tag"+(soldOut?" sold":"");tag.textContent=soldOut?"INDISPONÍVEL":(group.items.length>1?"VÁRIAS OPÇÕES":"DISPONÍVEL");art.append(illustration,tag);
       const info=document.createElement("div");info.className="product-info";
-      const cat=document.createElement("span");cat.className="product-category";cat.textContent=group.items.length>1?`${group.items.length} apresentações`:(group.subcategoria||categoryNames[group.categoria]||group.categoria);
+      const cat=document.createElement("span");cat.className="product-category";cat.textContent=group.subcategoria||categoryNames[group.categoria]||group.categoria;
       const title=document.createElement("h4");title.textContent=group.nome;
-      const desc=document.createElement("p");desc.textContent=soldOut?"Indisponível no momento.":(group.items.length>1?"Escolha o tamanho ou a versão que deseja.":"Consulte os atendentes sobre disponibilidade e valores.");
+      info.append(cat,title);
+      const presentation=presentationText(group);
+      if(presentation){const label=document.createElement("p");label.className="product-presentation";label.textContent=presentation;info.append(label);}
+      const description=group.items.map(usefulDescription).find(Boolean);
+      if(description){const desc=document.createElement("p");desc.className="product-description";desc.textContent=description;info.append(desc);}
       const bottom=document.createElement("div");bottom.className="product-bottom";
-      const price=document.createElement("strong");price.className="product-price";price.textContent=group.items.some(x=>x.precoIndefinido)?"Consulte no balcão":money(group.items[0].preco);
-      const small=document.createElement("small");small.textContent=group.items.some(x=>x.precoIndefinido)?"VALOR A CONFIRMAR":(demoPrice(group.items[0])?"VALOR EXEMPLO":"PREÇO INFORMADO");price.append(small);
+      const price=document.createElement("strong");price.className="product-price";
+      const availableItems=group.items.filter(item=>item.disponivel);
+      const knownPrices=availableItems.filter(item=>!item.precoIndefinido).map(item=>Number(item.preco||0));
+      if(soldOut)price.textContent="Indisponível";
+      else if(!knownPrices.length)price.textContent="Consulte no balcão";
+      else if(knownPrices.length<availableItems.length)price.textContent="Ver preços";
+      else if(group.items.length>1&&new Set(knownPrices).size>1)price.textContent="A partir de "+money(Math.min(...knownPrices));
+      else price.textContent=money(knownPrices[0]);
+      if(group.items.every(demoPrice)&&knownPrices.length){const small=document.createElement("small");small.textContent="VALOR EXEMPLO";price.append(small);}
       const btn=document.createElement("button");btn.type="button";btn.className="detail-button";btn.textContent=group.items.length>1?"VER OPÇÕES +":"DETALHES +";btn.addEventListener("click",()=>openDetails(group));
-      bottom.append(price,btn);info.append(cat,title,desc,bottom);card.append(art,info);grid.append(card);
+      bottom.append(price,btn);info.append(bottom);card.append(art,info);grid.append(card);
     });
     $("#product-count").textContent=String(groups.length).padStart(2,"0");
     $("#current-category").textContent=state.categoria==="todas"?"Todas as opções":(state.categorias.find(x=>x.id===state.categoria)?.nome||"Cardápio");
@@ -112,9 +147,10 @@
     const head=document.createElement("div");head.className="dialog-product-head";
     const art=document.createElement("div");art.className="dialog-art";art.append(makeImage(group.ilustracao));
     const title=document.createElement("h2");title.id="dialog-title";title.textContent=group.nome;
-    const description=document.createElement("p");description.className="dialog-description";
-    description.textContent=group.items.length>1?"Escolha a apresentação desejada:":safe(group.items[0].descricao,"Consulte os atendentes.");
-    head.append(art,title,description);body.append(head);
+    head.append(art,title);
+    if(group.items.length>1){const description=document.createElement("p");description.className="dialog-description";description.textContent="Apresentações disponíveis:";head.append(description);}
+    else {const description=usefulDescription(group.items[0]);if(description){const text=document.createElement("p");text.className="dialog-description";text.textContent=description;head.append(text);}}
+    body.append(head);
     group.items.forEach(p=>{
       const option=document.createElement("div");option.className="variant-option";
       const main=document.createElement("div");main.className="variant-main";
@@ -134,7 +170,7 @@
       }
       option.classList.add("variant-option");body.append(option);
     });
-    const note=document.createElement("p");note.className="dialog-demo";note.textContent=group.items.some(p=>p.precoIndefinido)?"Valores não informados no cardápio. Consulte a equipe.":(group.items.some(demoPrice)?"Alguns valores são exemplos e precisam ser confirmados.":"Valores informados pelo estabelecimento. Confirme a disponibilidade com a equipe.");body.append(note);
+    if(group.items.some(p=>p.precoIndefinido)||group.items.some(demoPrice)){const note=document.createElement("p");note.className="dialog-demo";note.textContent=group.items.some(demoPrice)?"Valores marcados como exemplo precisam ser confirmados.":"Alguns valores precisam ser confirmados com a equipe.";body.append(note);}
     c.append(body);$("#product-dialog").showModal();
   }
   function renderAbout(){

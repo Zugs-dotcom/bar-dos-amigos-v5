@@ -1,16 +1,29 @@
-# Bar dos Amigos — V5 (V4.4 + painel administrativo)
+# Bar dos Amigos — V5.1
 
-A V5 mantém o cardápio e os 139 produtos da V4.4, acrescentando uma área administrativa responsiva para celular e computador. O Google Sheets guarda os dados editáveis; o GitHub Pages hospeda as páginas públicas. O Google Apps Script faz a ponte privada entre os dois.
+A V5.1 mantém o catálogo V4.4 e melhora a experiência no celular, a edição administrativa e a apresentação pública dos produtos. O Google Sheets guarda os dados editáveis; o GitHub Pages hospeda as páginas públicas. O Google Apps Script faz a ponte privada entre os dois.
 
 ## O que está incluído
 
 - Cardápio V4.4, ilustrações SVG, catálogo e preços existentes preservados.
 - Login validado no Apps Script, com troca obrigatória da senha provisória no primeiro acesso.
-- Painel para criar e editar produtos, preços, apresentações, disponibilidade, visibilidade e categorias.
+- Cadastro e edição de várias apresentações dentro de um único produto, com embalagem, tamanho, preço e disponibilidade próprios.
+- Sugestões de embalagens e tamanhos por categoria, com opção personalizada.
+- Formulário administrativo adaptado ao iPhone, com rolagem interna, ações fixas embaixo e proteção contra descarte acidental.
+- Cards públicos mais enxutos, sem descrições genéricas repetidas; tamanhos e apresentações aparecem no produto.
+- Salvamento em lote no Google Sheets, atualizando apenas os registros editados e arquivando apresentações removidas.
 - Arquivamento e restauração de produtos; categorias podem ser renomeadas, reordenadas, desativadas e excluídas quando não contêm produtos.
 - Filtro por categoria, busca, resumo de disponibilidade e paginação em telas pequenas.
 - Histórico simples das alterações administrativas.
 - Catálogo local V4.4 como referência até que o endereço do Apps Script seja configurado.
+
+## Atualização de uma instalação V5 existente
+
+1. Mantenha a mesma planilha Google e os registros que já existem nela.
+2. Atualize no Apps Script os arquivos `Code.gs` e `Bridge.html` incluídos neste pacote. Não execute `setupV5()` novamente: a atualização não precisa recriar nem importar os dados.
+3. Implante uma nova versão do aplicativo da Web no Apps Script e mantenha o endereço `/exec` já configurado em `js/dados.js`.
+4. Publique os arquivos deste pacote no mesmo GitHub Pages usado pela V5, substituindo os arquivos do site.
+
+Os campos `grupo`, `tamanho` e `embalagem` já fazem parte da planilha V5. Cada apresentação continua sendo uma linha própria; o cadastro em lote não apaga produtos existentes. Ao remover uma apresentação pelo formulário, o sistema a arquiva em vez de excluir a linha.
 
 ## Configuração do Google Sheets e Apps Script
 
