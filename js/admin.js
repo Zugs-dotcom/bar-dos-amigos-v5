@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const $ = (selector, root=document) => root.querySelector(selector);
-  const state = { token: "", categories: [], products: [], page: 0, pageSize: 20, search: "", category: "", showArchived: false, editingProducts: [], commonInitial: {}, initialFormSnapshot: "", bodyScrollY: 0, saving: false };
+  const state = { token: "", categories: [], products: [], page: 0, pageSize: 20, search: "", category: "", showArchived: false, editingProducts: [], commonInitial: {}, initialFormSnapshot: "", bodyScrollY: 0, saving: false, quickBill: [] };
   const money = value => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const tokenKey = "bar-amigos-admin-session-v5";
   const PRESENTATION_TYPES = {
@@ -175,6 +175,113 @@
     $("#category-count").textContent = String(state.categories.filter(category => category.ativa).length);
   }
 
+  function isExamplePrice(product) { return /exemplo|demonstrativo|a confirmar/i.test(String(product?.origem || "")); }
+
+  function setQuickBillStatus(message, isError=false) {
+    const box = $("#quick-bill-status");
+    box.textContent = message;
+    box.classList.toggle("error", isError);
+    box.hidden = !message;
+  }
+
+  function renderQuickBillProducts() {
+    const select = $("#quick-bill-product");
+    const selected = select.value;
+    select.replaceChildren(new Option("Escolha um produto", ""));
+    const products = state.products.filter(product => product.ativo !== false && product.disponivel && product.precoIndefinido !== true && product.preco !== "" && product.preco != null && Number.isFinite(Number(product.preco)))
+      .sort((a,b) => (a.grupo || a.nome).localeCompare(b.grupo || b.nome,"pt-BR") || String(a.tamanho || "").localeCompare(String(b.tamanho || ""),"pt-BR"));
+    products.forEach(product => {
+      const name = product.grupo || product.nome;
+      const specificName = product.grupo && product.nome !== product.grupo ? ` · ${product.nome}` : "";
+      const example = isExamplePrice(product) ? " · exemplo" : "";
+      select.add(new Option(`${name}${specificName} · ${product.tamanho || "Unidade"} · ${money(product.preco)}${example}`, product.id));
+    });
+    if (products.some(product => String(product.id) === selected)) select.value = selected;
+  }
+
+  function renderQuickBill() {
+    const list = $("#quick-bill-items");
+    list.replaceChildren();
+    let totalCents = 0;
+    let hasExamplePrice = false;
+    state.quickBill.forEach(item => {
+      const product = item.product;
+      const unitCents = item.priceCents;
+      const subtotalCents = unitCents * item.quantity;
+      totalCents += subtotalCents;
+      hasExamplePrice ||= isExamplePrice(product);
+
+      const row = document.createElement("article");
+      row.className = "quick-bill-item";
+      const info = document.createElement("div");
+      info.className = "quick-bill-item-info";
+      const title = document.createElement("strong");
+      title.textContent = product.grupo || product.nome;
+      const detail = document.createElement("small");
+      const specificName = product.grupo && product.nome !== product.grupo ? product.nome : "";
+      detail.textContent = [specificName, product.tamanho || "Unidade", `${money(unitCents / 100)} cada`].filter(Boolean).join(" · ");
+      info.append(title, detail);
+
+      const subtotal = document.createElement("strong");
+      subtotal.className = "quick-bill-subtotal";
+      subtotal.textContent = money(subtotalCents / 100);
+
+      const controls = document.createElement("div");
+      controls.className = "quick-bill-item-controls";
+      const decrease = document.createElement("button");
+      decrease.type = "button";decrease.className = "quick-bill-quantity";decrease.dataset.quickChange = "-1";decrease.dataset.id = item.productId;
+      decrease.setAttribute("aria-label",`Diminuir quantidade de ${product.grupo || product.nome}`);decrease.textContent="−";
+      const quantity = document.createElement("span");quantity.textContent=String(item.quantity);quantity.setAttribute("aria-label",`Quantidade: ${item.quantity}`);
+      const increase = document.createElement("button");
+      increase.type = "button";increase.className = "quick-bill-quantity";increase.dataset.quickChange = "1";increase.dataset.id = item.productId;increase.disabled=item.quantity>=999;
+      increase.setAttribute("aria-label",`Aumentar quantidade de ${product.grupo || product.nome}`);increase.textContent="+";
+      const remove = document.createElement("button");
+      remove.type="button";remove.className="quick-bill-remove";remove.dataset.quickRemove="true";remove.dataset.id=item.productId;remove.textContent="Remover";
+      controls.append(decrease,quantity,increase,remove);
+      row.append(info,subtotal,controls);
+      list.append(row);
+    });
+    $("#quick-bill-empty").hidden = state.quickBill.length > 0;
+    $("#quick-bill-total").textContent = money(totalCents / 100);
+    $("#quick-bill-price-note").hidden = !hasExamplePrice;
+    $("#quick-bill-clear").hidden = state.quickBill.length === 0;
+  }
+
+  function handleQuickBillSubmit(event) {
+    event.preventDefault();
+    const product = state.products.find(item => String(item.id) === $("#quick-bill-product").value);
+    const quantity = Number($("#quick-bill-quantity").value);
+    if (!product || !product.ativo || !product.disponivel || product.precoIndefinido || product.preco == null || product.preco === "" || !Number.isFinite(Number(product.preco))) {
+      setQuickBillStatus("Escolha um produto disponível e com preço cadastrado.", true);
+      return;
+    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
+      setQuickBillStatus("Informe uma quantidade entre 1 e 999.", true);
+      return;
+    }
+    const id = String(product.id);
+    const existing = state.quickBill.find(item => item.productId === id);
+    if (existing) existing.quantity = Math.min(999, existing.quantity + quantity);
+    else state.quickBill.push({ productId: id, product: { ...product }, quantity, priceCents: Math.round(Number(product.preco) * 100) });
+    setQuickBillStatus(`${quantity} ${quantity === 1 ? "unidade adicionada" : "unidades adicionadas"} à conta.`);
+    $("#quick-bill-quantity").value = "1";
+    renderQuickBill();
+  }
+
+  function handleQuickBillItems(event) {
+    const button = event.target.closest("[data-quick-change], [data-quick-remove]");
+    if (!button) return;
+    const item = state.quickBill.find(entry => entry.productId === button.dataset.id);
+    if (!item) return;
+    if (button.hasAttribute("data-quick-remove")) state.quickBill = state.quickBill.filter(entry => entry.productId !== button.dataset.id);
+    else {
+      item.quantity += Number(button.dataset.quickChange);
+      if (item.quantity < 1) state.quickBill = state.quickBill.filter(entry => entry.productId !== button.dataset.id);
+    }
+    setQuickBillStatus("");
+    renderQuickBill();
+  }
+
   function refreshCategoryOptions() {
     const filter = $("#category-filter");
     const current = filter.value;
@@ -280,6 +387,8 @@
     state.categories = data.categorias || [];
     state.products = data.produtos || [];
     refreshCategoryOptions();
+    renderQuickBillProducts();
+    renderQuickBill();
     renderProducts();
     renderCategoriesEditor();
   }
@@ -540,6 +649,9 @@
     $("#category-editor-list").addEventListener("click", handleCategoryAction);
     $("#category-add-form").addEventListener("submit", addCategory);
     $("#change-password-form").addEventListener("submit", changeCurrentPassword);
+    $("#quick-bill-form").addEventListener("submit", handleQuickBillSubmit);
+    $("#quick-bill-items").addEventListener("click", handleQuickBillItems);
+    $("#quick-bill-clear").addEventListener("click", () => { state.quickBill = []; setQuickBillStatus(""); renderQuickBill(); });
     $("#logout-button").addEventListener("click", logout);
     $("#product-add").addEventListener("click", () => openProduct(null));
     $("#categories-open").addEventListener("click", () => $("#categories-dialog").showModal());
@@ -601,3 +713,4 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
