@@ -4,9 +4,10 @@ A V5.2 mantém o catálogo V4.4 e melhora a experiência no celular, a edição 
 
 ## O que está incluído
 
-- Cardápio V4.4, ilustrações SVG, catálogo e preços existentes preservados.
+- Cardápio V4.4 e ilustrações SVG, com os preços e a disponibilidade confirmados pelos proprietários em 22/11/2026; Alambique Diamond e Alambique Pedro Alemão estão sinalizados como indisponíveis.
 - Login validado no Apps Script, com troca obrigatória da senha provisória no primeiro acesso.
 - Cadastro e edição de várias apresentações dentro de um único produto, com embalagem, tamanho, preço e disponibilidade próprios.
+- Caipirinha com pinga comum, caipirinha com outras pingas e caipirinha de vodka reunidas em um card com preços próprios.
 - Sugestões de embalagens e tamanhos por categoria, com opção personalizada.
 - Formulário administrativo adaptado ao iPhone, com rolagem interna, ações fixas embaixo e proteção contra descarte acidental.
 - Cards públicos mais enxutos, sem descrições genéricas repetidas; tamanhos e apresentações aparecem no produto.
@@ -18,13 +19,13 @@ A V5.2 mantém o catálogo V4.4 e melhora a experiência no celular, a edição 
 - Histórico simples das alterações administrativas.
 - Catálogo local V4.4 como referência até que o endereço do Apps Script seja configurado.
 
-Esta versão não altera os preços do catálogo. Confirme os valores atuais com os proprietários antes de publicar, especialmente os salgadinhos, porque a foto da tabela traz valores impressos e correções manuscritas.
+A semente local e o catálogo inicial do Apps Script incluem os valores da planilha preenchida pelos proprietários em 22/11/2026. Em instalações já configuradas, o menu público continua lendo o Google Sheets: publicar no GitHub Pages não altera os preços da planilha existente. Para refletir estes valores no menu ao vivo, salve os produtos no painel administrativo. Os dois produtos Alambique permanecem sem preço e indisponíveis.
 
 ## Atualização de uma instalação V5 existente
 
 1. Mantenha a mesma planilha Google e os registros que já existem nela.
 2. Para aplicar a melhoria V5.2, publique os arquivos do site (`index.html`, `admin.html`, `css/`, `js/` e `assets/`) no mesmo GitHub Pages usado pela V5.
-3. Esta melhoria atua apenas na página pública; não exige alteração na planilha, execução de `setupV5()` nem nova implantação do Apps Script.
+3. Os preços e as apresentações desta versão precisam ser aplicados à planilha existente pelo painel administrativo; `setupV5()` não substitui produtos em abas já preenchidas. Não publique uma nova implantação do Apps Script se o código e a origem permitida não tiverem mudado.
 
 Os campos `grupo`, `tamanho` e `embalagem` já fazem parte da planilha V5. Cada apresentação continua sendo uma linha própria; o cadastro em lote não apaga produtos existentes. Ao remover uma apresentação pelo formulário, o sistema a arquiva em vez de excluir a linha.
 
