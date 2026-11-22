@@ -4,7 +4,7 @@ A V5.2 mantém o catálogo V4.4 e melhora a experiência no celular, a edição 
 
 ## O que está incluído
 
-- Cardápio V4.4 e ilustrações SVG, com os preços e a disponibilidade confirmados pelos proprietários em 22/11/2026; Alambique Diamond e Alambique Pedro Alemão estão sinalizados como indisponíveis.
+- Menu público conectado ao Google Sheets; os preços confirmados pelos proprietários em 22/11/2026 foram aplicados à planilha existente e conferidos no site. Alambique Diamond e Alambique Pedro Alemão permanecem indisponíveis, sem preço.
 - Login validado no Apps Script, com troca obrigatória da senha provisória no primeiro acesso.
 - Cadastro e edição de várias apresentações dentro de um único produto, com embalagem, tamanho, preço e disponibilidade próprios.
 - Caipirinha com pinga comum, caipirinha com outras pingas e caipirinha de vodka reunidas em um card com preços próprios.
@@ -19,13 +19,13 @@ A V5.2 mantém o catálogo V4.4 e melhora a experiência no celular, a edição 
 - Histórico simples das alterações administrativas.
 - Catálogo local V4.4 como referência até que o endereço do Apps Script seja configurado.
 
-A semente local e o catálogo inicial do Apps Script incluem os valores da planilha preenchida pelos proprietários em 22/11/2026. Em instalações já configuradas, o menu público continua lendo o Google Sheets: publicar no GitHub Pages não altera os preços da planilha existente. Para refletir estes valores no menu ao vivo, salve os produtos no painel administrativo. Os dois produtos Alambique permanecem sem preço e indisponíveis.
+Na instalação publicada, o catálogo ativo é lido da planilha Google existente. Os valores confirmados pelos proprietários foram salvos pelo painel administrativo em 22/11/2026; o menu público foi conferido após a atualização. A lista inclui três apresentações de caipirinha, reunidas em um card, e mantém Alambique Diamond e Alambique Pedro Alemão indisponíveis. Alterações feitas na planilha não são registradas como commits no Git.
 
 ## Atualização de uma instalação V5 existente
 
 1. Mantenha a mesma planilha Google e os registros que já existem nela.
 2. Para aplicar a melhoria V5.2, publique os arquivos do site (`index.html`, `admin.html`, `css/`, `js/` e `assets/`) no mesmo GitHub Pages usado pela V5.
-3. Os preços e as apresentações desta versão precisam ser aplicados à planilha existente pelo painel administrativo; `setupV5()` não substitui produtos em abas já preenchidas. Não publique uma nova implantação do Apps Script se o código e a origem permitida não tiverem mudado.
+3. Na instalação deste projeto, os preços e as apresentações confirmados já foram aplicados à planilha existente. Para atualizações futuras, salve os itens pelo painel administrativo e confira o menu público depois da sincronização. `setupV5()` não substitui produtos em abas já preenchidas. Não publique uma nova implantação do Apps Script se o código e a origem permitida não tiverem mudado.
 
 Os campos `grupo`, `tamanho` e `embalagem` já fazem parte da planilha V5. Cada apresentação continua sendo uma linha própria; o cadastro em lote não apaga produtos existentes. Ao remover uma apresentação pelo formulário, o sistema a arquiva em vez de excluir a linha.
 
@@ -63,6 +63,6 @@ A autenticação aplica limite de cinco tentativas incorretas em 15 minutos. Ap�
 
 O GitHub Pages não executa autenticação no servidor. Por isso, login e gravação no Sheets passam pelo Apps Script; não coloque senhas, tokens privados ou credenciais Google no JavaScript da página. Sem a URL implantada em `js/dados.js`, o cardápio mostra uma indicação de modo local e o painel permanece bloqueado.
 
-As categorias e produtos já existentes foram preservados, inclusive preços e estados de disponibilidade da V4.4. Antes de publicar o novo endereço do cardápio, confira os valores e itens sinalizados como demonstrativos na versão anterior.
+As categorias e produtos já existentes foram preservados. O menu publicado usa os dados atuais da planilha Google; a cópia local em `js/dados.js` funciona como referência/fallback e pode conter valores demonstrativos, identificados no próprio menu. Para futuras alterações, a planilha existente continua sendo a fonte de verdade do catálogo ativo.
 
 
