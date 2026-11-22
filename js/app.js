@@ -5,7 +5,7 @@
   const money = v => Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
   const safe = (v, fallback="") => v == null || String(v).trim()==="" ? fallback : String(v);
   const demoPrice = p => /exemplo|demonstrativo|a confirmar/i.test(p?.origem||"");
-  const groupedCategories = new Set(["cervejas","refrigerantes","aguas","energeticos","salgados","porcoes"]);
+  const groupedCategories = new Set(["cervejas","refrigerantes","aguas","energeticos","salgados","porcoes","snacks"]);
   const categoryNames = {cervejas:"Cerveja",refrigerantes:"Refrigerante",aguas:"Bebida",energeticos:"Energético",destilados:"Destilado",salgados:"Salgado",porcoes:"Porção",drinks:"Drink"};
   function applyData(d, cache=false){
     state.categorias=(d.categorias||[]).filter(x=>x.ativa!==false).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
@@ -128,6 +128,24 @@
     const shown=values.slice(0,3);
     return shown.join(" · ")+(values.length>3?` · +${values.length-3} opções`:"");
   }
+  function appendSnackVariants(group, info){
+    const headings=document.createElement("div");headings.className="product-variants-heading";
+    const sizeHeading=document.createElement("span");sizeHeading.textContent="Tamanho";
+    const priceHeading=document.createElement("span");priceHeading.textContent="Preço";
+    headings.append(sizeHeading,priceHeading);info.append(headings);
+    const list=document.createElement("ul");list.className="product-variants";list.setAttribute("aria-label","Apresentações disponíveis com tamanho e preço");
+    group.items.forEach(item=>{
+      const row=document.createElement("li");row.className="product-variant-row";
+      const label=document.createElement("span");label.className="product-variant-size";
+      label.textContent=[item.nome!==group.nome?item.nome:"",safe(item.tamanho,"Tamanho a confirmar")].filter(Boolean).join(" · ");
+      const price=document.createElement("strong");price.className="product-variant-price";
+      if(!item.disponivel)price.textContent="Em falta";
+      else if(item.precoIndefinido)price.textContent="Consultar";
+      else price.textContent=money(item.preco)+(demoPrice(item)?"*":"");
+      row.append(label,price);list.append(row);
+    });
+    info.append(list);
+  }
   function renderProducts(){
     const grid=$("#product-grid"), groups=visibleGroups();grid.replaceChildren();grid.setAttribute("aria-busy","true");
     const showCategoryOverview=window.matchMedia("(max-width: 700px)").matches&&state.categoria==="todas"&&!state.busca;
@@ -144,8 +162,9 @@
       return;
     }
     groups.forEach(group=>{
+      const isSnackGroup=group.categoria==="snacks";
       const soldOut=group.items.every(x=>!x.disponivel);
-      const card=document.createElement("article");card.className="product-card"+(soldOut?" is-unavailable":"");
+      const card=document.createElement("article");card.className="product-card"+(soldOut?" is-unavailable":"")+(isSnackGroup?" has-inline-variants":"");
       const art=document.createElement("div");art.className="product-art";
       const illustration=document.createElement("span");illustration.className="product-illustration";illustration.append(makeImage(group.ilustracao));
       const tag=document.createElement("span");tag.className="product-tag"+(soldOut?" sold":"");tag.textContent=soldOut?"INDISPONÍVEL":(group.items.length>1?"VÁRIAS OPÇÕES":"DISPONÍVEL");art.append(illustration,tag);
@@ -153,22 +172,30 @@
       const cat=document.createElement("span");cat.className="product-category";cat.textContent=group.subcategoria||categoryNames[group.categoria]||group.categoria;
       const title=document.createElement("h4");title.textContent=group.nome;
       info.append(cat,title);
-      const presentation=presentationText(group);
+      const presentation=isSnackGroup?"":presentationText(group);
       if(presentation){const label=document.createElement("p");label.className="product-presentation";label.textContent=presentation;info.append(label);}
       const description=group.items.map(usefulDescription).find(Boolean);
-      if(description){const desc=document.createElement("p");desc.className="product-description";desc.textContent=description;info.append(desc);}
+      if(description&&!isSnackGroup){const desc=document.createElement("p");desc.className="product-description";desc.textContent=description;info.append(desc);}
+      if(isSnackGroup)appendSnackVariants(group,info);
       const bottom=document.createElement("div");bottom.className="product-bottom";
-      const price=document.createElement("strong");price.className="product-price";
-      const availableItems=group.items.filter(item=>item.disponivel);
-      const knownPrices=availableItems.filter(item=>!item.precoIndefinido).map(item=>Number(item.preco||0));
-      if(soldOut)price.textContent="Indisponível";
-      else if(!knownPrices.length)price.textContent="Consulte no balcão";
-      else if(knownPrices.length<availableItems.length)price.textContent="Ver preços";
-      else if(group.items.length>1&&new Set(knownPrices).size>1)price.textContent="A partir de "+money(Math.min(...knownPrices));
-      else price.textContent=money(knownPrices[0]);
-      if(group.items.every(demoPrice)&&knownPrices.length){const small=document.createElement("small");small.textContent="VALOR EXEMPLO";price.append(small);}
-      const btn=document.createElement("button");btn.type="button";btn.className="detail-button";btn.textContent=group.items.length>1?"VER OPÇÕES +":"DETALHES +";btn.addEventListener("click",()=>openDetails(group));
-      bottom.append(price,btn);info.append(bottom);card.append(art,info);grid.append(card);
+      const btn=document.createElement("button");btn.type="button";btn.className="detail-button";btn.textContent=isSnackGroup?"VER DETALHES +":(group.items.length>1?"VER OPÇÕES +":"DETALHES +");btn.addEventListener("click",()=>openDetails(group));
+      if(isSnackGroup){
+        bottom.classList.add("product-bottom--variants");
+        const count=document.createElement("span");count.className="product-variants-count";count.textContent=`${group.items.length} ${group.items.length===1?"apresentação":"apresentações"}`;
+        bottom.append(count,btn);
+      }else{
+        const price=document.createElement("strong");price.className="product-price";
+        const availableItems=group.items.filter(item=>item.disponivel);
+        const knownPrices=availableItems.filter(item=>!item.precoIndefinido).map(item=>Number(item.preco||0));
+        if(soldOut)price.textContent="Indisponível";
+        else if(!knownPrices.length)price.textContent="Consulte no balcão";
+        else if(knownPrices.length<availableItems.length)price.textContent="Ver preços";
+        else if(group.items.length>1&&new Set(knownPrices).size>1)price.textContent="A partir de "+money(Math.min(...knownPrices));
+        else price.textContent=money(knownPrices[0]);
+        if(group.items.every(demoPrice)&&knownPrices.length){const small=document.createElement("small");small.textContent="VALOR EXEMPLO";price.append(small);}
+        bottom.append(price,btn);
+      }
+      info.append(bottom);card.append(art,info);grid.append(card);
     });
     $("#product-count").textContent=String(groups.length).padStart(2,"0");
     $("#current-category").textContent=state.categoria==="todas"?"Todas as opções":(state.categorias.find(x=>x.id===state.categoria)?.nome||"Cardápio");
