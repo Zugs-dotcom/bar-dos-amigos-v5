@@ -583,7 +583,7 @@
       state.initialFormSnapshot = "";
       $("#product-dialog").close();
       await loadAdminData();
-      setStatus(`${products.length} apresentação${products.length === 1 ? "" : "ões"} salva${products.length === 1 ? "" : "s"} no Google Sheets.`);
+      setStatus(products.length === 1 ? "1 apresentação salva no Google Sheets." : `${products.length} apresentações salvas no Google Sheets.`);
     } catch (error) { setStatus(error.message, true); }
     finally { button.disabled = false; state.saving = false; $("#product-form [data-close='product-dialog']").disabled = false; }
   }
