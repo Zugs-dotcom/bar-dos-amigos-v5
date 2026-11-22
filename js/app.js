@@ -21,7 +21,7 @@
   async function loadLiveCatalog(){
     const banner=$("#connection-status");
     if(!window.BarBridge?.available()){
-      banner.textContent="Catálogo local V4.4. Configure o Apps Script para sincronizar preços e disponibilidade do Google Sheets.";
+      banner.textContent="Catálogo de referência exibido sem conexão. Configure o Apps Script para sincronizar preços e disponibilidade do Google Sheets.";
       banner.hidden=false;
       return;
     }
@@ -217,8 +217,9 @@
       const name=document.createElement("strong");name.textContent=(p.nome!==group.nome?p.nome+" — ":"")+safe(p.tamanho,categoryNames[p.categoria]||"Opção");
       const price=document.createElement("span");price.className="variant-price";
       if(!p.disponivel){price.textContent="Indisponível no momento";} else if(p.precoIndefinido){price.textContent=p.categoria==="destilados"?"Dose • consulte o valor":"Consulte o valor";}
-      else {price.textContent=money(p.preco)+(demoPrice(p)?" • EXEMPLO":" • INFORMADO");}
+      else {price.textContent=money(p.preco)+(demoPrice(p)?" • EXEMPLO":"");}
       main.append(name,price);option.append(main);
+      if(group.items.length>1){const description=usefulDescription(p);if(description){const note=document.createElement("small");note.className="variant-note";note.textContent=description;option.append(note);}}
       if(!p.disponivel){const unavailable=document.createElement("small");unavailable.textContent="Temporariamente em falta";option.append(unavailable);}
       if(p.retornavel){const note=document.createElement("small");note.textContent="Garrafa retornável";option.append(note);}
       if(p.categoria==="destilados"){
@@ -230,7 +231,7 @@
       }
       option.classList.add("variant-option");body.append(option);
     });
-    if(group.items.some(p=>p.precoIndefinido)||group.items.some(demoPrice)){const note=document.createElement("p");note.className="dialog-demo";note.textContent=group.items.some(demoPrice)?"Valores marcados como exemplo precisam ser confirmados.":"Alguns valores precisam ser confirmados com a equipe.";body.append(note);}
+    if(group.items.some(p=>p.disponivel&&p.precoIndefinido)||group.items.some(demoPrice)){const note=document.createElement("p");note.className="dialog-demo";note.textContent=group.items.some(demoPrice)?"Valores marcados como exemplo precisam ser confirmados.":"Alguns valores precisam ser confirmados com a equipe.";body.append(note);}
     c.append(body);$("#product-dialog").showModal();
   }
   function renderAbout(){

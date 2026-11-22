@@ -117,7 +117,6 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
 .product-bottom--variants { align-items: center; }
 .detail-button { min-height: 39px; padding: 7px 10px; border: 1px solid var(--yellow); background: transparent; color: var(--yellow); cursor: pointer; font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .detail-button:hover { background: var(--yellow); color: var(--ink); }
-.demo-disclaimer { margin: 20px 0 0; color: #a99f90; font-size: 10px; }
 .empty-state { padding: 55px 20px; text-align: center; border: 1px dashed var(--line); }
 .empty-state > span { font-size: 35px; }
 .empty-state h3 { margin: 8px 0 0; font: 700 28px var(--display); }

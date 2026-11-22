@@ -54,7 +54,7 @@ function setupV5() {
     initialPassword = response.getResponseText();
   }
   initializeAuthentication_(properties, initialPassword);
-  return "Configuração pronta. Catálogo V4.4 preservado e senha provisória configurada para a primeira entrada.";
+  return "Configuração pronta. Catálogo inicial preservado e senha provisória configurada para a primeira entrada.";
 }
 
 function initializeAuthentication_(properties, initialPassword) {
